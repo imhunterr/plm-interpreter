@@ -29,6 +29,15 @@ def section_baseline() -> list[str]:
            "|---|---|---|---|---|---|"]
     for m, r in s.iterrows():
         out.append(f"| ESM-2 {m} | {int(r.n_assays)} | {_fmt(r.mean_spearman)} | {_fmt(r.mean_published_spearman)} | {_fmt(r.max_abs_diff, 4)} | {_fmt(r.mean_auc)} |")
+    per = RUNS_DIR / "baseline" / "dms_per_assay.csv"
+    if per.exists():
+        d = pd.read_csv(per)
+        off = d[d.abs_diff_vs_published > 0.01]
+        n_ok = (d.abs_diff_vs_published <= 0.01).groupby(d.model).sum()
+        out += ["", "Per-assay agreement within 0.01 Spearman: " + ", ".join(f"{int(v)}/217 ({m})" for m, v in n_ok.items())
+                + ". The exceptions are " + ", ".join(sorted(set(off.DMS_id)))
+                + ", proteins longer than ESM-2's 1,022-residue limit, which are scored in windows; our window placement"
+                " differs from ProteinGym's for these."]
     c = RUNS_DIR / "baseline" / "clinical_summary.csv"
     if c.exists():
         cl = pd.read_csv(c)
@@ -93,6 +102,9 @@ def section_attribution() -> list[str]:
             f"| ESM-2 {m} | {len(t)} | {t.ig_converged.mean():.0%} | {_fmt(t.ig_auroc_all.mean())} | {_fmt(t.ig_auroc_long_range.mean())} | "
             f"{_fmt(t.ig_auroc_seqdist_baseline.mean())} | {t.ig_top10_contact_frac.mean():.0%} | {_fmt(occ)} | {_fmt(r.ig_auroc_all.mean())} |"
         )
+    conv = df[df.ig_converged.astype(bool) & ~df.random_init].groupby("model").ig_auroc_all.mean()
+    out += ["", "Robustness: restricted to IG runs whose attributions sum to the score change within 10%, the contact AUROC is "
+            + ", ".join(f"{_fmt(v)} ({m})" for m, v in conv.items()) + "."]
     t = df[df.model == "35M"]
     if not t.empty:
         out += ["", "Deletion test (ESM-2 35M): mean |change in score| after masking k residues", "",
@@ -118,7 +130,7 @@ def section_ablation() -> list[str]:
     if comp.exists():
         c = pd.read_csv(comp)
         lay = c[c.kind.isin(["attn_layer", "mlp"])].groupby(["model", "kind"]).d_rho_all.min()
-        out += ["", "Largest single-layer drops in Spearman: " + "; ".join(f"{m} {k} {v:.3f}" for (m, k), v in lay.items())]
+        out += ["", "Largest drop in Spearman from ablating one whole layer, in any single protein: " + "; ".join(f"{m} {k} {v:.3f}" for (m, k), v in lay.items())]
     return out + [""]
 
 

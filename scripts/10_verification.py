@@ -22,8 +22,11 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
+from scipy.stats import binomtest
 
-from plm_interp.paths import RUNS_DIR
+from plm_interp.explain.probing import TASKS, task_mask
+
+from plm_interp.paths import ANNOTATIONS_DIR, RUNS_DIR
 from plm_interp.utils.common import ensure_dir, get_logger, load_config
 from plm_interp.verification.stats import (
     benjamini_hochberg,
@@ -70,6 +73,8 @@ def main() -> None:
     if f.exists():
         pr = pd.read_csv(f)
         aa = pr[pr.model == "aa_identity"].set_index("task").value
+        residues = pd.read_parquet(ANNOTATIONS_DIR / "residues.parquet")
+        n_test = {t: int((task_mask(residues, t) & (residues.split == "test").to_numpy()).sum()) for t in TASKS}
         for m in cfg["models"]:
             trained = pr[(pr.model == m) & ~pr.random_init]
             rnd = pr[(pr.model == m) & pr.random_init]
@@ -80,7 +85,7 @@ def main() -> None:
                     statement=f"probe {task}: best layer {int(best.layer)} ({best.metric}) vs aa identity / random-init best",
                     estimate=best.value, ci_low=np.nan, ci_high=np.nan,
                     control=max(aa.get(task, np.nan), rnd[rnd.task == task].value.max()),
-                    p_value=np.nan, n=int(best.layer), unit="held-out residues",
+                    p_value=np.nan, n=n_test[task], unit="held-out residues",
                 ))
 
     # C3 attention heads vs contacts (per-protein precision of the best head vs random-init best head)
@@ -110,6 +115,8 @@ def main() -> None:
             r = va[va.model == f"{m}-random"]
             claim(rows, "C4", m, "IG |attribution| AUROC for 3D contacts of the mutated site", t.ig_auroc_all, null=0.5, unit="variants", cfg=cfg)
             claim(rows, "C4", m, "IG AUROC for long-range contacts (|i-j|>=6)", t.ig_auroc_long_range, null=0.5, unit="variants", cfg=cfg)
+            conv = t[t.ig_converged.astype(bool)]
+            claim(rows, "C4", m, "robustness: IG contact AUROC on runs meeting completeness only", conv.ig_auroc_all, null=0.5, unit="variants", cfg=cfg)
             if len(r):
                 pair = t.merge(r, on=["dms_id", "mutant"], suffixes=("", "_rand"))
                 claim(rows, "C4", m, "IG contact AUROC, trained vs random-init model (same variants)",
@@ -132,6 +139,10 @@ def main() -> None:
                 drop_top = gk.clean_rho_eval - gk.top_rho_eval
                 drop_rand = gk.clean_rho_eval - gk.random_rho_eval_mean
                 claim(rows, "C6", m, f"held-out Spearman drop: ablate top-{k} heads vs {k} random heads", drop_top, paired=drop_rand, unit="proteins", cfg=cfg)
+                wins = int((drop_top > drop_rand).sum())
+                rows.append(dict(claim="C6", model=m, statement=f"proteins where top-{k} heads beat random heads (sign test p, one-sided)",
+                                 estimate=wins, ci_low=np.nan, ci_high=np.nan, control=len(gk) / 2,
+                                 p_value=float(binomtest(wins, len(gk), 0.5, alternative="greater").pvalue), n=len(gk), unit="proteins"))
                 if "contact_rho_eval" in gk:
                     claim(rows, "C6", m, f"held-out Spearman drop: ablate top-{k} contact heads", gk.clean_rho_eval - gk.contact_rho_eval, paired=drop_rand, unit="proteins", cfg=cfg)
 

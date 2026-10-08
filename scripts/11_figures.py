@@ -135,7 +135,7 @@ def fig_attribution(cfg) -> None:
         t = df[df.model == m]
         r = df[df.model == f"{m}-random"]
         groups += [t.ig_auroc_seqdist_baseline.dropna(), t.ig_auroc_all.dropna(), t.ig_auroc_long_range.dropna(), r.ig_auroc_all.dropna()]
-        labels += [f"{m}\nseq. distance", f"{m}\nIG", f"{m}\nIG long-range", f"{m}\nIG random init"]
+        labels += [f"{m} seq.\ndistance", f"{m}\nIG", f"{m} IG\nlong-range", f"{m} IG\nrandom init"]
         colors += [LIGHT_GRAY, MODEL_COLORS[m], MODEL_COLORS[m], GRAY]
     bp = ax.boxplot(groups, patch_artist=True, widths=0.6, showfliers=False, medianprops=dict(color="white", lw=1.5))
     for patch, c in zip(bp["boxes"], colors):
@@ -144,7 +144,7 @@ def fig_attribution(cfg) -> None:
         for line, c in zip(bp[el], np.repeat(colors, 2)):
             line.set(color=c)
     ax.axhline(0.5, color=TEXT_2, ls=":", lw=1)
-    ax.set_xticks(range(1, len(labels) + 1), labels, fontsize=6.5)
+    ax.set_xticks(range(1, len(labels) + 1), labels, fontsize=7, rotation=45, ha="right", rotation_mode="anchor")
     ax.set(ylabel="AUROC: attribution vs 3D contact", title="Attributions find 3D neighbours")
     ax.grid(axis="x", visible=False)
 

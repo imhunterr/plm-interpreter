@@ -177,7 +177,7 @@ def main() -> None:
             lens = layerwise_logprobs(bundle, seq, [pos])[:, 0]
             lens_llr = (lens[:, AA_INDEX[mt]] - lens[:, AA_INDEX[wt]]).tolist()
 
-            order = [j for j in np.argsort(-np.abs(ig.attribution)) if j != pos][:10]
+            order = [int(j) for j in np.argsort(-np.abs(ig.attribution)) if j != pos][:10]
             top_res = [
                 dict(residue=f"{seq[j]}{j + 1}", ig=float(ig.attribution[j]), occlusion=float(occ[j]),
                      distance_A=float(dist[pos, j]), seq_separation=int(abs(j - pos)),
@@ -186,7 +186,8 @@ def main() -> None:
             ]
             flat = [(l, h, heads[l, h]) for l in range(heads.shape[0]) for h in range(heads.shape[1])]
             top_heads = [dict(layer=l, head=h, delta_llr=float(d)) for l, h, d in sorted(flat, key=lambda x: -abs(x[2]))[:6]]
-            pos_dms = dms[dms.mutant.str.match(rf"^{wt}{pos + 1}[A-Z]$")].set_index(dms.mutant.str[-1])
+            at_site = dms[dms.mutant.str.match(rf"^{wt}{pos + 1}[A-Z]$")]
+            pos_dms = at_site.set_index(at_site.mutant.str[-1])
             table = [
                 (a, float(probs.loc[pos, a]), float(pos_dms.DMS_score[a]) if a in pos_dms.index else None)
                 for a in sorted(AMINO_ACIDS, key=lambda a: -probs.loc[pos, a])
