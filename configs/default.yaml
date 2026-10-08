@@ -1,0 +1,49 @@
+# PLM Interpreter: shared settings for all analysis scripts
+
+seed: 0
+threads: 6
+
+models: ["8M", "35M"]
+main_model: "35M"
+
+# Showcase proteins: small, AF2 structure + MSA available, human disease relevance
+showcase:
+  - RASH_HUMAN_Bandaru_2017      # HRas, 189 aa, oncogenic G12/G13/Q61
+  - TPK1_HUMAN_Weile_2017        # thiamin pyrophosphokinase, 243 aa
+  - OTC_HUMAN_Lo_2023            # ornithine transcarbamylase, 354 aa
+  - HEM3_HUMAN_Loggerenberg_2023 # porphobilinogen deaminase, 361 aa
+  - P53_HUMAN_Kotler_2018        # p53, 393 aa
+
+# Probing / attention analyses use a wider protein panel (structures only)
+panel:
+  max_len: 400
+  n_proteins: 60
+  test_fraction: 0.25
+
+structure:
+  plddt_min: 70          # residues below this AF2 confidence are excluded from structural labels
+  contact_cutoff: 8.0    # Angstrom, C-beta (C-alpha for Gly)
+  min_seq_sep: 6         # contacts closer than this in sequence are ignored
+  buried_rsa: 0.25       # relative solvent accessibility threshold for "buried"
+
+msa:
+  max_seqs: 20000
+  max_gap_fraction: 0.5
+
+attribution:
+  ig_steps: 32           # starting step count; doubled up to ig_max_steps until completeness holds
+  ig_max_steps: 128
+  ig_rel_tol: 0.1
+  n_variants_per_protein: 40
+  n_occlusion_per_protein: 20
+  n_random_init_per_protein: 10
+  deletion_k: [1, 2, 4, 8, 16]
+  n_random_deletions: 5
+
+ablation:
+  mode: "mean"           # "mean" or "zero"
+  n_random_sets: 20
+
+stats:
+  n_bootstrap: 1000
+  n_permutations: 1000
