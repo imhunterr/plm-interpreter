@@ -9,6 +9,13 @@
 
 Per-assay agreement within 0.01 Spearman: 215/217 (35M), 215/217 (8M). The exceptions are KCNH2_HUMAN_Kozek_2020, SCN5A_HUMAN_Glazer_2019, proteins longer than ESM-2's 1,022-residue limit, which are scored in windows; our window placement differs from ProteinGym's for these.
 
+Clinical variants (pathogenic vs benign, score = -LLR):
+
+| model | genes | variants | pooled AUROC | mean per-gene AUROC |
+|---|---|---|---|---|
+| ESM-2 8M | 2525 | 62727 | 0.649 | 0.641 (n=2525) |
+| ESM-2 35M | 2525 | 62727 | 0.744 | 0.726 (n=2525) |
+
 ### 2. Probing: what each layer encodes (held-out proteins)
 
 | task | metric | residue identity only | 8M best layer | 35M best layer | 35M random-init best |

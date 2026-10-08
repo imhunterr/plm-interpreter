@@ -22,7 +22,8 @@ AlphaFold2 structures, MSAs).
 
 1. **The scores are reproduced exactly.** Our masked-marginal scores match ProteinGym's published
    Spearman for 215 of 217 assays per model (mean 0.319 for 35M, 0.203 for 8M). The two exceptions are
-   proteins longer than the model's context, scored in windows.
+   proteins longer than the model's context, scored in windows. On 62,727 curated clinical variants
+   across 2,525 human genes, the 35M score separates pathogenic from benign with AUROC 0.744 (8M: 0.649).
 2. **Structure is learned, not built in.** Linear probes recover secondary structure (balanced accuracy
    0.80 vs 0.45 from residue identity alone), burial, solvent accessibility, contact number and
    conservation from held-out proteins. The signal grows with depth and is absent in a randomly initialised model.
@@ -54,6 +55,13 @@ AlphaFold2 structures, MSAs).
 | ESM-2 8M | 217 | 0.203 | 0.206 | 0.3963 | 0.611 |
 
 Per-assay agreement within 0.01 Spearman: 215/217 (35M), 215/217 (8M). The exceptions are KCNH2_HUMAN_Kozek_2020, SCN5A_HUMAN_Glazer_2019, proteins longer than ESM-2's 1,022-residue limit, which are scored in windows; our window placement differs from ProteinGym's for these.
+
+Clinical variants (pathogenic vs benign, score = -LLR):
+
+| model | genes | variants | pooled AUROC | mean per-gene AUROC |
+|---|---|---|---|---|
+| ESM-2 8M | 2525 | 62727 | 0.649 | 0.641 (n=2525) |
+| ESM-2 35M | 2525 | 62727 | 0.744 | 0.726 (n=2525) |
 
 ### 2. Probing: what each layer encodes (held-out proteins)
 
