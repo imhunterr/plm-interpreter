@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Notebooks
+__marimo__/
+.ipynb_checkpoints/
+
+# Heavy / generated (keep folder structure via .gitkeep)
+models/**
+!models/**/
+!models/**/.gitkeep
+data/**
+!data/**/
+!data/**/.gitkeep
+outputs/**
+!outputs/**/
+!outputs/**/.gitkeep
+# Keep the small, paper-relevant results: figures, summary tables, explanation cards
+!outputs/figures/*.png
+!outputs/figures/*.pdf
+!outputs/runs/**/*.csv
+!outputs/runs/**/*.md
+!outputs/explanations/**/*.json
+!outputs/explanations/**/*.html
+!outputs/explanations/**/*.csv
+logs/**
+!logs/.gitkeep
+
+# Weights and archives anywhere
+*.safetensors
+*.bin
+*.pt
+*.h5
+*.zip
+
+# Editor / OS
+.vscode/
+.DS_Store
+
+# Large result arrays
+*.npz
