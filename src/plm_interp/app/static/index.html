@@ -1,164 +1,138 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>PLM Interpreter</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22%3E%3Ccircle cx=%228%22 cy=%228%22 r=%226%22 fill=%22%23eb6834%22/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Ccircle cx=%227%22 cy=%2220%22 r=%225%22 fill=%22%238ab4f8%22/%3E%3Ccircle cx=%2216%22 cy=%2210%22 r=%226%22 fill=%22%23fcad70%22/%3E%3Ccircle cx=%2225%22 cy=%2220%22 r=%225%22 fill=%22%2381c995%22/%3E%3C/svg%3E">
 <link rel="stylesheet" href="/static/style.css">
 <script src="/static/vendor/3Dmol-min.js"></script>
 </head>
 <body>
 
 <header class="topbar">
-  <div class="brand"><span class="dot" aria-hidden="true"></span>PLM Interpreter <small>ESM-2 · explained</small></div>
-  <nav class="tabs" role="tablist" aria-label="Pages">
-    <button class="tab" role="tab" data-view="demo" aria-selected="true" id="tab-demo">Live demo</button>
-    <button class="tab" role="tab" data-view="findings" aria-selected="false" id="tab-findings">What we found</button>
-    <button class="tab" role="tab" data-view="how" aria-selected="false" id="tab-how">How it works</button>
+  <div class="brand">
+    <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><circle cx="7" cy="20" r="5"/><circle cx="16" cy="10" r="6"/><circle cx="25" cy="20" r="5"/></svg>
+    <span>PLM Interpreter</span>
+  </div>
+
+  <div class="protein-menu">
+    <button class="pill protein-btn" id="protein-btn" type="button" aria-haspopup="listbox" aria-expanded="false">
+      <span class="pm-label">Protein</span><span id="protein-name">Loading…</span><span class="caret" aria-hidden="true">▾</span>
+    </button>
+    <div class="menu" id="protein-list" role="listbox" hidden></div>
+  </div>
+
+  <nav class="views" role="tablist" aria-label="Pages">
+    <button role="tab" data-view="demo" aria-selected="true" id="tab-demo">Live demo</button>
+    <button role="tab" data-view="findings" aria-selected="false" id="tab-findings">What we found</button>
+    <button role="tab" data-view="how" aria-selected="false" id="tab-how">How it works</button>
   </nav>
-  <div class="controls">
+
+  <div class="top-right">
     <div class="seg" role="group" aria-label="Model size">
-      <button data-model="35M" aria-pressed="true" id="model-35M">ESM-2 35M</button>
-      <button data-model="8M" aria-pressed="false" id="model-8M">ESM-2 8M</button>
+      <button data-model="35M" aria-pressed="true" id="model-35M">35M</button>
+      <button data-model="8M" aria-pressed="false" id="model-8M">8M</button>
     </div>
-    <button class="icon-btn" id="theme-toggle" type="button">Theme: auto</button>
+    <button class="icon-btn" id="theme-toggle" type="button" aria-label="Switch theme" title="Switch theme">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9c0-.5 0-1-.1-1.4A5.5 5.5 0 0 1 13.4 3.1C13 3 12.5 3 12 3z"/></svg>
+    </button>
   </div>
 </header>
 
-<main>
 <!-- =============================== LIVE DEMO =============================== -->
-<section class="view" id="view-demo" role="tabpanel" aria-labelledby="tab-demo">
-  <div class="picker" id="picker" aria-label="Choose a protein"></div>
-  <div class="protein-head" id="protein-head"></div>
+<section class="view demo" id="view-demo" role="tabpanel" aria-labelledby="tab-demo">
+  <nav class="rail" id="rail" aria-label="Steps"></nav>
 
-  <div class="bench">
-    <div class="steps">
+  <div class="workspace" id="workspace">
+    <article class="stage" id="stage" aria-live="polite">
+      <header class="stage-head">
+        <span class="kicker" id="stage-kicker"></span>
+        <h1 id="stage-title"></h1>
+        <p class="narrative" id="stage-text"></p>
+      </header>
+      <div class="stage-body" id="stage-body"></div>
+      <footer class="stage-foot">
+        <button class="pill ghost" id="prev" type="button">← <span id="prev-label"></span></button>
+        <span class="hint">Use ← → keys to move between steps</span>
+        <button class="pill primary" id="next" type="button"><span id="next-label"></span> →</button>
+      </footer>
+    </article>
 
-      <article class="step" id="step-read">
-        <div class="step-head"><span class="step-num">01</span><h2>The model reads a protein as letters</h2></div>
-        <p class="step-lede">A protein is a chain of amino acids, each written as one letter. ESM-2 learned from millions of natural proteins by playing one game: hide a letter and guess it back. <b>Click any residue</b> to hide it.</p>
-        <div class="step-body">
-          <div class="seq-toolbar">
-            <div class="legend" id="seq-legend"></div>
-            <label class="small muted"><input type="checkbox" id="show-ids"> Show what the model actually sees (token numbers)</label>
-          </div>
-          <div class="seq" id="seq"></div>
-          <div class="suggest" id="suggest"></div>
-        </div>
-      </article>
-
-      <article class="step locked" id="step-mask">
-        <div class="step-head"><span class="step-num">02</span><h2>Hide one residue</h2></div>
-        <p class="locked-note">Click a residue above to hide it.</p>
-        <div class="step-body">
-          <p class="step-lede">The residue is replaced by a special <code>&lt;mask&gt;</code> token. The model sees everything else, and nothing about what was there.</p>
-          <div class="tokstrip" id="tokstrip"></div>
-        </div>
-      </article>
-
-      <article class="step locked" id="step-predict">
-        <div class="step-head"><span class="step-num">03</span><h2>The model's guess</h2></div>
-        <p class="locked-note">Waiting for a hidden residue.</p>
-        <div class="step-body">
-          <p class="step-lede">ESM-2 gives a probability to each of the 20 amino acids. Where the lab tested a mutation, its measured result is shown on the right. <b>Click an amino acid</b> to score that mutation.</p>
-          <div id="predict-out"></div>
-        </div>
-      </article>
-
-      <article class="step locked" id="step-score">
-        <div class="step-head"><span class="step-num">04</span><h2>Score the mutation</h2></div>
-        <p class="locked-note">Pick a replacement amino acid in step 3.</p>
-        <div class="step-body">
-          <p class="step-lede">The score compares how likely the model finds the new amino acid with the original one: <code>log P(new) − log P(original)</code>. Below zero means "less natural than the original". Very negative usually means damaging.</p>
-          <div id="score-out"></div>
-        </div>
-      </article>
-
-      <article class="step locked" id="step-why">
-        <div class="step-head"><span class="step-num">05</span><h2>Why? Which residues drove the score</h2></div>
-        <p class="locked-note">Score a mutation first.</p>
-        <div class="step-body">
-          <p class="step-lede">Integrated gradients measures how much each other residue pushed this score up or down. On the right, the same colours are painted on the 3D structure, so you can check whether the important residues really surround the site.</p>
-          <div class="row"><button class="btn" id="btn-why" type="button">Explain this score</button><span class="status" id="why-status"></span></div>
-          <div id="why-out"></div>
-        </div>
-      </article>
-
-      <article class="step locked" id="step-inside">
-        <div class="step-head"><span class="step-num">06</span><h2>Inside the model</h2></div>
-        <p class="locked-note">Score a mutation first.</p>
-        <div class="step-body">
-          <p class="step-lede">Two views of where the decision happens: the score read out after every layer, and what happens when each attention head is switched off one at a time.</p>
-          <div class="row"><button class="btn" id="btn-inside" type="button">Look inside</button><span class="status" id="inside-status"></span></div>
-          <div id="inside-out"></div>
-        </div>
-      </article>
-
-      <article class="step" id="step-map">
-        <div class="step-head"><span class="step-num">07</span><h2>Every possible mutation at once</h2></div>
-        <div class="step-body">
-          <p class="step-lede">The model scores all 19 replacements at every position. Next to it is the lab's map for the same protein. Dark means damaging. The more the two maps look alike, the better the model is. <b>Click a cell</b> to jump to that mutation.</p>
-          <div class="row"><button class="btn secondary" id="btn-map" type="button">Draw the mutation maps</button><span class="status" id="map-status"></span></div>
-          <div id="map-out"></div>
-        </div>
-      </article>
-    </div>
-
-    <aside class="viewer-panel" aria-label="3D structure">
-      <div class="row" style="justify-content: space-between;"><h3>3D structure</h3><span class="small muted" id="viewer-note">AlphaFold2 model</span></div>
+    <aside class="structure" id="structure" aria-label="3D structure">
+      <div class="structure-head">
+        <span class="kicker">3D structure</span>
+        <span class="structure-note" id="viewer-note">AlphaFold2 model</span>
+      </div>
       <div id="viewer"></div>
-      <div class="legend" id="viewer-legend"></div>
-      <dl class="site-info" id="site-info"></dl>
+      <div class="structure-foot">
+        <div class="legend" id="viewer-legend"></div>
+        <div class="site-chips" id="site-info"></div>
+      </div>
     </aside>
+  </div>
+
+  <div class="strand-wrap">
+    <div class="strand-bar">
+      <span class="kicker">Sequence</span>
+      <div class="legend" id="strand-legend"></div>
+      <label class="toggle"><input type="checkbox" id="show-ids"> token numbers</label>
+    </div>
+    <div class="strand-scroll" id="strand-scroll">
+      <div class="strand" id="strand">
+        <svg class="arcs" id="arcs" aria-hidden="true"></svg>
+        <div class="beads" id="beads"></div>
+      </div>
+    </div>
   </div>
 </section>
 
 <!-- =============================== FINDINGS =============================== -->
-<section class="view" id="view-findings" role="tabpanel" aria-labelledby="tab-findings" hidden>
-  <div class="page-head">
-    <h1>What we found</h1>
-    <p class="muted">Eight results from running the full pipeline on ESM-2 8M and 35M, 217 lab experiments, 62,727 clinical variants and 60 protein structures. Every result is compared with a control: usually an untrained copy of the same model.</p>
-  </div>
+<section class="view page" id="view-findings" role="tabpanel" aria-labelledby="tab-findings" hidden>
+  <header class="page-head">
+    <span class="kicker">Results</span>
+    <h1>What we found inside ESM-2</h1>
+    <p>Eight results from the full pipeline: two model sizes, 217 lab experiments, 62,727 clinical variants and 60 protein structures. Every result is checked against a control, usually an untrained copy of the same model.</p>
+  </header>
   <div class="findings" id="findings"></div>
 </section>
 
 <!-- =============================== HOW IT WORKS =============================== -->
-<section class="view" id="view-how" role="tabpanel" aria-labelledby="tab-how" hidden>
-  <div class="page-head">
-    <h1>How it works</h1>
-    <p class="muted">The project asks one question: when ESM-2 says a mutation is bad, <b>why</b> does it say so, and can we trust that explanation?</p>
-  </div>
-  <div class="how">
-    <div class="card"><span class="step-num">01</span><h3>Hide and guess</h3><p>ESM-2 was trained to fill in hidden amino acids. To judge a mutation we hide that position and ask how likely the new amino acid is compared with the original.</p><p class="formula">score = log P(new) − log P(original)</p></div>
-    <div class="card"><span class="step-num">02</span><h3>Check the score is right</h3><p>Our scores reproduce the published ProteinGym benchmark for all 217 experiments, so every explanation is about the real model behaviour.</p></div>
-    <div class="card"><span class="step-num">03</span><h3>Explain at three levels</h3><p><b>Residues:</b> which other amino acids drove the score. <b>Components:</b> which attention heads it depends on. <b>Layers:</b> what each layer knows, and where the decision forms.</p></div>
-    <div class="card"><span class="step-num">04</span><h3>Test against reality</h3><p>Explanations are compared with 3D structures (AlphaFold2), conservation across species and lab measurements, always alongside an untrained model as a control.</p></div>
-  </div>
+<section class="view page" id="view-how" role="tabpanel" aria-labelledby="tab-how" hidden>
+  <header class="page-head">
+    <span class="kicker">Method</span>
+    <h1>How PLM Interpreter works</h1>
+    <p>One question: when ESM-2 says a mutation is bad, <b>why</b> does it say so, and can we trust that explanation?</p>
+  </header>
+  <ol class="how">
+    <li><span class="how-n">1</span><h2>Hide and guess</h2><p>ESM-2 was trained to fill in hidden amino acids. To judge a mutation we hide that position and compare how likely the new amino acid is with the original.</p><code class="formula">score = log P(new) − log P(original)</code></li>
+    <li><span class="how-n">2</span><h2>Check the score is right</h2><p>Our scores reproduce the published ProteinGym benchmark in all 217 experiments, so every explanation is about the real model.</p></li>
+    <li><span class="how-n">3</span><h2>Explain at three levels</h2><p><b>Residues</b> that drove the score, <b>attention heads</b> it depends on, and <b>layers</b> where structure and the verdict appear.</p></li>
+    <li><span class="how-n">4</span><h2>Test against reality</h2><p>Explanations are compared with AlphaFold2 structures, conservation across species and lab measurements, always alongside an untrained model as a control.</p></li>
+  </ol>
   <dl class="glossary">
     <dt>ESM-2</dt><dd>A protein language model from Meta. We use the 8-million and 35-million parameter versions, which run on a laptop.</dd>
     <dt>Mask</dt><dd>Hiding one amino acid so the model has to guess it.</dd>
-    <dt>Score (LLR)</dt><dd>Log-likelihood ratio: how much less (or more) likely the new amino acid is than the original. −4 means about 55× less likely.</dd>
+    <dt>Score (LLR)</dt><dd>How much less (or more) likely the new amino acid is than the original, on a log scale. −4 means about 55× less likely.</dd>
     <dt>Layer</dt><dd>One processing stage. Information passes through 6 (8M) or 12 (35M) layers.</dd>
     <dt>Attention head</dt><dd>A small unit inside a layer that decides which other positions to look at. 35M has 240, 8M has 120.</dd>
-    <dt>Integrated gradients</dt><dd>A standard way to assign each input residue a share of the model's output.</dd>
-    <dt>Ablation</dt><dd>Switching a part of the model off and measuring what breaks.</dd>
+    <dt>Integrated gradients</dt><dd>A standard way to give each input residue a share of the model's output.</dd>
+    <dt>Ablation</dt><dd>Switching part of the model off and measuring what changes.</dd>
     <dt>Logit lens</dt><dd>Reading the model's guess after each layer instead of only at the end.</dd>
     <dt>DMS</dt><dd>Deep mutational scanning: a lab experiment that measures thousands of mutations of one protein.</dd>
     <dt>Spearman</dt><dd>Correlation from −1 to 1: do two lists rank items in the same order?</dd>
     <dt>AUROC</dt><dd>How well a score separates two groups. 0.5 is a coin flip, 1.0 is perfect.</dd>
   </dl>
 </section>
-</main>
 
 <dialog id="custom-dialog">
   <form method="dialog" id="custom-form">
-    <h2 style="font-size:1.2rem">Use your own sequence</h2>
-    <p class="small muted">Paste a protein sequence in one-letter code (10 to 1,022 amino acids). Spaces and line breaks are ignored. There will be no 3D structure or lab data for it.</p>
-    <label for="custom-seq" class="small">Sequence</label>
+    <h2>Use your own sequence</h2>
+    <p class="muted">Paste a protein sequence in one-letter code (10 to 1,022 amino acids). Spaces and line breaks are ignored. There is no 3D structure or lab data for a pasted sequence.</p>
+    <label for="custom-seq" class="kicker">Sequence</label>
     <textarea id="custom-seq" spellcheck="false">MQIFVKTLTGKTITLEVEPSDTIENVKAKIQDKEGIPPDQQRLIFAGKQLEDGRTLSDYNIQKESTLHLVLRLRGG</textarea>
-    <p class="status error" id="custom-error"></p>
-    <div class="row" style="justify-content:flex-end"><button class="btn secondary" value="cancel" type="button" id="custom-cancel">Cancel</button><button class="btn" id="custom-ok" type="submit">Use this sequence</button></div>
+    <p class="error-text" id="custom-error"></p>
+    <div class="dialog-actions"><button class="pill ghost" type="button" id="custom-cancel">Cancel</button><button class="pill primary" type="submit">Use this sequence</button></div>
   </form>
 </dialog>
 
