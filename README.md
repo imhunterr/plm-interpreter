@@ -18,6 +18,24 @@ Models: ESM-2 8M (6 layers × 20 heads) and 35M (12 × 20), CPU only.
 Data: ProteinGym v1.2 (217 deep mutational scanning assays, 2,525 clinical variant sets,
 AlphaFold2 structures, MSAs).
 
+## Live demo
+
+A local web app walks through the whole idea on real proteins: pick a protein, hide one residue,
+see ESM-2's guess for all 20 amino acids, score a mutation against the lab measurement, then ask
+why (residue importance painted on the AlphaFold2 structure) and look inside the model (score after
+every layer, effect of switching off each attention head). It also draws the model's and the lab's
+mutation maps side by side, and includes the findings and figures.
+
+```bash
+conda activate plm-interp
+python -m plm_interp.app --warm   # first time: precomputes the showcase examples (cached on disk)
+python -m plm_interp.app          # afterwards: starts instantly and opens http://127.0.0.1:8000
+```
+
+Everything runs offline on the laptop CPU (the 3D viewer and fonts are bundled). Code:
+`src/plm_interp/app/` (`engine.py` reuses the pipeline functions, `server.py` is a small FastAPI app,
+`static/` is the plain HTML/JS front end).
+
 ## Key findings
 
 1. **The scores are reproduced exactly.** Our masked-marginal scores match ProteinGym's published
@@ -173,6 +191,8 @@ Each script reads the previous stages' outputs, can be re-run safely, and writes
 | `10_verification.py` | Effect sizes, bootstrap CIs, permutation tests, FDR for every claim | `runs/verification/claims.md` |
 | `11_figures.py` | Paper figures | `outputs/figures/` |
 | `12_case_studies.py` | Per-variant explanation cards with 3D views | `outputs/explanations/` |
+| `14_evolution_vs_function.py` | Does the score rank damage and improvement equally well? (all assays) | `runs/evolution_vs_function/` |
+| `15_head_roles.py` | What the heads that matter for variant scores attend to | `runs/head_roles/` |
 | `13_report.py` | Collect headline numbers into this README and `runs/report.md` | `runs/report.md` |
 
 ```bash
@@ -180,7 +200,8 @@ conda activate plm-interp
 python scripts/01_download_models.py
 python scripts/02_download_data.py
 for s in 03_baseline 04_annotate 05_probing 06_attention_contacts 07_attribution \
-         08_head_ablation 09_logit_lens 10_verification 11_figures 12_case_studies 13_report; do
+         08_head_ablation 09_logit_lens 14_evolution_vs_function 15_head_roles \
+         10_verification 11_figures 12_case_studies 13_report; do
   python scripts/$s.py
 done
 pytest
