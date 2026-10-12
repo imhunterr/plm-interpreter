@@ -75,15 +75,7 @@ function showTip(html, x, y) {
 const hideTip = () => { tip.hidden = true; };
 const busy = (text) => el("div", { class: "busy" }, el("span", { class: "spinner", "aria-hidden": "true" }), text);
 
-/* ================================================================ theme, views, model */
-let theme = "dark";
-try { theme = localStorage.getItem("plm-theme") || "dark"; } catch (e) { /* storage unavailable */ }
-function applyTheme() {
-  document.documentElement.dataset.theme = theme;
-  try { localStorage.setItem("plm-theme", theme); } catch (e) { /* ignore */ }
-  if (state.protein) { renderStage(); updateStrand(); styleStructure(); }
-}
-$("#theme-toggle").addEventListener("click", () => { theme = theme === "dark" ? "light" : "dark"; applyTheme(); });
+/* ================================================================ views, model */
 
 document.querySelectorAll(".views button").forEach((b) => b.addEventListener("click", () => {
   document.querySelectorAll(".views button").forEach((x) => x.setAttribute("aria-selected", String(x === b)));
@@ -109,7 +101,6 @@ menuBtn.addEventListener("click", (e) => { e.stopPropagation(); toggleMenu(menu.
 document.addEventListener("click", (e) => { if (!menu.hidden && !menu.contains(e.target)) toggleMenu(false); });
 
 async function init() {
-  applyTheme();
   initViewer();
   renderFindings();
   try { state.proteins = await api("/api/proteins"); }

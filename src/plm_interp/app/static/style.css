@@ -9,7 +9,6 @@
 @font-face { font-family: "Google Sans Code"; src: url("fonts/google-sans-code.woff2") format("woff2"); font-weight: 300 700; font-display: swap; }
 
 :root {
-  /* light */
   --bg: #f4f6fb;
   --glow: #dfe9fd;
   --surface: #ffffff;
@@ -43,17 +42,6 @@
   --f-code: "Google Sans Code", ui-monospace, "SFMono-Regular", Menlo, monospace;
   --r: 22px;
   color-scheme: light;
-}
-:root[data-theme="dark"] {
-  --bg: #0c0f15; --glow: #14213a; --surface: #141922; --surface-2: #1b212c; --surface-3: #252c39; --line: #262e3b;
-  --fg: #eef1f7; --muted: #9ba4b6; --faint: #6c7588;
-  --primary: #8ab4f8; --on-primary: #0a1c3b; --primary-soft: #1c2b47;
-  --mask: #fcad70; --mask-soft: #3b2818; --contact: #81c995;
-  --down: #f28b82; --up: #8ab4f8; --mid: #2f3644; --ramp-lo: #20262f; --ramp-hi: #f28b82;
-  --cls-hydrophobic: #fdd663; --cls-polar: #81c995; --cls-positive: #8ab4f8; --cls-negative: #f28b82; --cls-special: #c58af9;
-  --good: #81c995; --good-soft: #17301f; --warn: #fdd663; --warn-soft: #352e15; --bad: #f28b82; --bad-soft: #3a1f1e;
-  --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 10px 30px rgba(0, 0, 0, .25);
-  color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
@@ -106,9 +94,6 @@ code, .code { font-family: var(--f-code); }
 .seg { display: inline-flex; background: var(--surface-2); border-radius: 999px; padding: 4px; }
 .seg button { border: 0; background: none; border-radius: 999px; padding: 6px 14px; cursor: pointer; color: var(--muted); font-weight: 500; font-family: var(--f-code); font-size: .85rem; }
 .seg button[aria-pressed="true"] { background: var(--primary); color: var(--on-primary); }
-.icon-btn { width: 40px; height: 40px; border-radius: 50%; border: 0; background: var(--surface-2); cursor: pointer; display: grid; place-items: center; }
-.icon-btn svg { width: 20px; height: 20px; fill: var(--fg); }
-.icon-btn:hover { background: var(--surface-3); }
 
 /* ------------------------------------------------ demo layout */
 .view.demo { height: calc(100vh - 64px); display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 12px; padding: 0 18px 14px; }
