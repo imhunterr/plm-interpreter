@@ -34,10 +34,12 @@ def section_baseline() -> list[str]:
         d = pd.read_csv(per)
         off = d[d.abs_diff_vs_published > 0.01]
         n_ok = (d.abs_diff_vs_published <= 0.01).groupby(d.model).sum()
-        out += ["", "Per-assay agreement within 0.01 Spearman: " + ", ".join(f"{int(v)}/217 ({m})" for m, v in n_ok.items())
-                + ". The exceptions are " + ", ".join(sorted(set(off.DMS_id)))
-                + ", proteins longer than ESM-2's 1,022-residue limit, which are scored in windows; our window placement"
-                " differs from ProteinGym's for these."]
+        msg = "Per-assay agreement within 0.01 Spearman: " + ", ".join(f"{int(v)}/217 ({m})" for m, v in n_ok.items()) + "."
+        if len(off):
+            msg += " Exceptions: " + ", ".join(sorted(set(off.DMS_id))) + "."
+        msg += (" Proteins longer than ESM-2's 1,022-residue limit are scored as ProteinGym does: on the MSA region"
+                " when it covers only part of the protein, otherwise in windows centred on each site.")
+        out += ["", msg]
     c = RUNS_DIR / "baseline" / "clinical_summary.csv"
     if c.exists():
         cl = pd.read_csv(c)

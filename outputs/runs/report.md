@@ -4,10 +4,10 @@
 
 | model | assays | mean Spearman (ours) | mean Spearman (published) | max per-assay difference | mean AUROC |
 |---|---|---|---|---|---|
-| ESM-2 35M | 217 | 0.319 | 0.319 | 0.1112 | 0.675 |
-| ESM-2 8M | 217 | 0.203 | 0.206 | 0.3963 | 0.611 |
+| ESM-2 35M | 217 | 0.319 | 0.319 | 0.0096 | 0.675 |
+| ESM-2 8M | 217 | 0.206 | 0.206 | 0.0016 | 0.612 |
 
-Per-assay agreement within 0.01 Spearman: 215/217 (35M), 215/217 (8M). The exceptions are KCNH2_HUMAN_Kozek_2020, SCN5A_HUMAN_Glazer_2019, proteins longer than ESM-2's 1,022-residue limit, which are scored in windows; our window placement differs from ProteinGym's for these.
+Per-assay agreement within 0.01 Spearman: 217/217 (35M), 217/217 (8M). Proteins longer than ESM-2's 1,022-residue limit are scored as ProteinGym does: on the MSA region when it covers only part of the protein, otherwise in windows centred on each site.
 
 Clinical variants (pathogenic vs benign, score = -LLR):
 
@@ -56,18 +56,18 @@ Drop in held-out Spearman (heads ranked on other positions), mean over showcase 
 
 | model | k | top-k heads | random k heads | top-k contact heads |
 |---|---|---|---|---|
-| ESM-2 35M | 1 | 0.007 | 0.002 | -0.004 |
-| ESM-2 35M | 2 | 0.045 | 0.004 | -0.005 |
-| ESM-2 35M | 4 | 0.067 | 0.010 | 0.000 |
-| ESM-2 35M | 8 | 0.114 | 0.021 | 0.004 |
-| ESM-2 35M | 16 | 0.164 | 0.033 | 0.027 |
-| ESM-2 8M | 1 | 0.026 | 0.000 | -0.004 |
-| ESM-2 8M | 2 | 0.027 | -0.000 | 0.004 |
-| ESM-2 8M | 4 | 0.069 | 0.004 | 0.021 |
-| ESM-2 8M | 8 | 0.079 | 0.004 | 0.037 |
-| ESM-2 8M | 16 | 0.102 | 0.031 | 0.015 |
+| ESM-2 35M | 1 | 0.055 | 0.002 | 0.005 |
+| ESM-2 35M | 2 | 0.091 | 0.004 | 0.006 |
+| ESM-2 35M | 4 | 0.112 | 0.008 | 0.008 |
+| ESM-2 35M | 8 | 0.177 | 0.018 | 0.020 |
+| ESM-2 35M | 16 | 0.278 | 0.048 | 0.038 |
+| ESM-2 8M | 1 | 0.043 | 0.003 | 0.000 |
+| ESM-2 8M | 2 | 0.067 | 0.008 | 0.005 |
+| ESM-2 8M | 4 | 0.108 | 0.017 | 0.010 |
+| ESM-2 8M | 8 | 0.146 | 0.034 | 0.015 |
+| ESM-2 8M | 16 | 0.193 | 0.072 | 0.046 |
 
-Largest drop in Spearman from ablating one whole layer, in any single protein: 35M attn_layer -0.487; 35M mlp -0.351; 8M attn_layer -0.472; 8M mlp -0.597
+Largest drop in Spearman from ablating one whole layer, in any single protein: 35M attn_layer -0.706; 35M mlp -0.672; 8M attn_layer -0.548; 8M mlp -0.795
 
 ### 6. Logit lens: when the variant signal appears
 
@@ -76,7 +76,33 @@ Mean Spearman with DMS when decoding from each layer:
 - ESM-2 35M: L0 0.08 → L1 0.12 → L2 0.13 → L3 0.03 → L4 0.04 → L5 -0.02 → L6 -0.05 → L7 -0.02 → L8 0.05 → L9 0.11 → L10 0.17 → L11 0.26 → L12 0.34
 - ESM-2 8M: L0 0.02 → L1 -0.16 → L2 0.01 → L3 0.03 → L4 0.01 → L5 0.10 → L6 0.23
 
-### 7. Case studies
+### 7. Damage, not improvement: what the score measures
+
+Within each assay, Spearman between model score and lab result, computed separately inside the worst and the best quarter of variants (209 assays with >= 200 single mutants):
+
+| model | assays | within worst 25% | within best 25% | difference [95% CI] | assays where worst > best | top-5% dip |
+|---|---|---|---|---|---|---|
+| ESM-2 8M | 209 | 0.119 | 0.032 | 0.088 [0.062, 0.114] | 65% | +1.17 |
+| ESM-2 35M | 209 | 0.179 | 0.042 | 0.138 [0.109, 0.169] | 74% | +1.45 |
+| ESM-2 35M (stability) | 66 | 0.287 | 0.049 | 0.237 [0.190, 0.283] | 88% | +1.52 |
+| ESM-2 8M (stability) | 66 | 0.178 | 0.036 | 0.142 [0.093, 0.198] | 76% | +1.08 |
+
+The model ranks damaging variants much better than beneficial ones. On average it does not rate the best variants as worse than good ones (the top-5% dip is positive), but individual assays such as HRas do show that dip. Part of the asymmetry may come from measurement noise among near-neutral variants, which dominate the best quarter.
+
+### 8. What the important heads look at
+
+Attention from the masked site, averaged over sampled sites in the ablation proteins. Mutation heads = the 10 heads whose ablation hurts variant scores most; contact heads = the 10 best contact detectors from section 3.
+
+| model | group | mean layer | to neighbours (1-4 away) | to 3D contacts | to conserved positions | mean distance | entropy |
+|---|---|---|---|---|---|---|---|
+| ESM-2 35M | contact heads | 10.2 | 0.17 | 0.087 | 0.28 | 27.7 | 0.78 |
+| ESM-2 35M | mutation heads | 9.0 | 0.60 | 0.018 | 0.29 | 5.1 | 0.35 |
+| ESM-2 35M | other | 5.1 | 0.23 | 0.033 | 0.26 | 25.2 | 0.70 |
+| ESM-2 8M | contact heads | 4.4 | 0.21 | 0.046 | 0.27 | 23.5 | 0.81 |
+| ESM-2 8M | mutation heads | 3.2 | 0.55 | 0.017 | 0.27 | 6.6 | 0.41 |
+| ESM-2 8M | other | 2.2 | 0.25 | 0.026 | 0.24 | 25.2 | 0.70 |
+
+### 9. Case studies
 
 Open `outputs/explanations/35M/index.html` for the interactive cards.
 

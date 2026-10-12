@@ -39,9 +39,9 @@ Everything runs offline on the laptop CPU (the 3D viewer and fonts are bundled).
 ## Key findings
 
 1. **The scores are reproduced exactly.** Our masked-marginal scores match ProteinGym's published
-   Spearman for 215 of 217 assays per model (mean 0.319 for 35M, 0.203 for 8M). The two exceptions are
-   proteins longer than the model's context, scored in windows. On 62,727 curated clinical variants
-   across 2,525 human genes, the 35M score separates pathogenic from benign with AUROC 0.744 (8M: 0.649).
+   Spearman within 0.01 for all 217 assays and both models (mean 0.319 for 35M, 0.206 for 8M). On 62,727
+   curated clinical variants across 2,525 human genes, the 35M score separates pathogenic from benign with
+   AUROC 0.744 (8M: 0.649).
 2. **Structure is learned, not built in.** Linear probes recover secondary structure (balanced accuracy
    0.80 vs 0.45 from residue identity alone), burial, solvent accessibility, contact number and
    conservation from held-out proteins. The signal grows with depth and is absent in a randomly initialised model.
@@ -52,15 +52,24 @@ Everything runs offline on the laptop CPU (the 3D viewer and fonts are bundled).
    for a random-init model), and masking the top-attributed residue moves the score about 10x more than
    masking a random one. Simple sequence proximity is a strong baseline (AUROC 0.86): much of what the
    model uses is local sequence context.
-5. **Variant prediction depends on a few heads, but not the contact heads.** Ablating the 16 heads that
-   matter most on one half of the positions lowers Spearman on the other half by 0.16 (35M), against 0.03
-   for 16 random heads; the top heads beat random heads in 5/5 proteins for k >= 2. Ablating the
-   best contact-detector heads barely changes variant scores.
-6. **The variant signal forms late.** Decoded with the logit lens, the variant score only correlates with
+5. **Variant prediction depends on a few heads, and they are not the contact heads.** Across 24 proteins,
+   ablating the 16 heads that matter most on one half of the positions lowers Spearman on the other half by
+   0.28 (ESM-2 35M), against 0.05 for 16 random heads; the top heads beat random heads in 23 of 24 proteins
+   (sign test p = 1.5e-6). Ablating the 16 best contact-detector heads costs only 0.04, about the same as
+   random heads.
+6. **The heads that matter look locally.** From the masked site, the 10 most important heads of ESM-2 35M put
+   60% of their attention on residues 1-4 positions away (other heads: 23%), look about 5 residues away on
+   average (others: 25) and attend to 3D contacts less than other heads. None of them is among the top 10
+   contact heads, in either model. This explains finding 4: the variant verdict is built mainly from local
+   sequence context, while the fold-sensing machinery sits elsewhere.
+7. **The variant signal forms late.** Decoded with the logit lens, the variant score only correlates with
    experiments in the last third of the network (35M: Spearman about 0 at layers 4-8, 0.34 at layer 12).
-7. **Where the model disagrees with experiments, it is often for a principled reason.** In the HRas assay,
-   the oncogenic hotspots G12V, G13D and Q61L are functional or gain-of-function, yet ESM-2 rates them
-   unlikely: the score measures evolutionary plausibility, not loss of function.
+8. **The model detects damage, not improvement.** Across 209 assays, the 35M score ranks variants well within
+   the most damaging quarter (Spearman 0.18) but barely within the best quarter (0.04); this holds in 74% of
+   assays and 88% of stability assays (p < 0.001). The score reflects evolutionary plausibility rather than
+   function: in HRas, the oncogenic hotspots G12V, G13D and Q61L work normally or better in the lab, yet the
+   model rates them unusual. (Measurement noise among near-neutral variants may account for part of the
+   asymmetry.)
 
 ## Results
 
@@ -69,10 +78,10 @@ Everything runs offline on the laptop CPU (the 3D viewer and fonts are bundled).
 
 | model | assays | mean Spearman (ours) | mean Spearman (published) | max per-assay difference | mean AUROC |
 |---|---|---|---|---|---|
-| ESM-2 35M | 217 | 0.319 | 0.319 | 0.1112 | 0.675 |
-| ESM-2 8M | 217 | 0.203 | 0.206 | 0.3963 | 0.611 |
+| ESM-2 35M | 217 | 0.319 | 0.319 | 0.0096 | 0.675 |
+| ESM-2 8M | 217 | 0.206 | 0.206 | 0.0016 | 0.612 |
 
-Per-assay agreement within 0.01 Spearman: 215/217 (35M), 215/217 (8M). The exceptions are KCNH2_HUMAN_Kozek_2020, SCN5A_HUMAN_Glazer_2019, proteins longer than ESM-2's 1,022-residue limit, which are scored in windows; our window placement differs from ProteinGym's for these.
+Per-assay agreement within 0.01 Spearman: 217/217 (35M), 217/217 (8M). Proteins longer than ESM-2's 1,022-residue limit are scored as ProteinGym does: on the MSA region when it covers only part of the protein, otherwise in windows centred on each site.
 
 Clinical variants (pathogenic vs benign, score = -LLR):
 
@@ -121,18 +130,18 @@ Drop in held-out Spearman (heads ranked on other positions), mean over showcase 
 
 | model | k | top-k heads | random k heads | top-k contact heads |
 |---|---|---|---|---|
-| ESM-2 35M | 1 | 0.007 | 0.002 | -0.004 |
-| ESM-2 35M | 2 | 0.045 | 0.004 | -0.005 |
-| ESM-2 35M | 4 | 0.067 | 0.010 | 0.000 |
-| ESM-2 35M | 8 | 0.114 | 0.021 | 0.004 |
-| ESM-2 35M | 16 | 0.164 | 0.033 | 0.027 |
-| ESM-2 8M | 1 | 0.026 | 0.000 | -0.004 |
-| ESM-2 8M | 2 | 0.027 | -0.000 | 0.004 |
-| ESM-2 8M | 4 | 0.069 | 0.004 | 0.021 |
-| ESM-2 8M | 8 | 0.079 | 0.004 | 0.037 |
-| ESM-2 8M | 16 | 0.102 | 0.031 | 0.015 |
+| ESM-2 35M | 1 | 0.055 | 0.002 | 0.005 |
+| ESM-2 35M | 2 | 0.091 | 0.004 | 0.006 |
+| ESM-2 35M | 4 | 0.112 | 0.008 | 0.008 |
+| ESM-2 35M | 8 | 0.177 | 0.018 | 0.020 |
+| ESM-2 35M | 16 | 0.278 | 0.048 | 0.038 |
+| ESM-2 8M | 1 | 0.043 | 0.003 | 0.000 |
+| ESM-2 8M | 2 | 0.067 | 0.008 | 0.005 |
+| ESM-2 8M | 4 | 0.108 | 0.017 | 0.010 |
+| ESM-2 8M | 8 | 0.146 | 0.034 | 0.015 |
+| ESM-2 8M | 16 | 0.193 | 0.072 | 0.046 |
 
-Largest drop in Spearman from ablating one whole layer, in any single protein: 35M attn_layer -0.487; 35M mlp -0.351; 8M attn_layer -0.472; 8M mlp -0.597
+Largest drop in Spearman from ablating one whole layer, in any single protein: 35M attn_layer -0.706; 35M mlp -0.672; 8M attn_layer -0.548; 8M mlp -0.795
 
 ### 6. Logit lens: when the variant signal appears
 
@@ -141,7 +150,33 @@ Mean Spearman with DMS when decoding from each layer:
 - ESM-2 35M: L0 0.08 → L1 0.12 → L2 0.13 → L3 0.03 → L4 0.04 → L5 -0.02 → L6 -0.05 → L7 -0.02 → L8 0.05 → L9 0.11 → L10 0.17 → L11 0.26 → L12 0.34
 - ESM-2 8M: L0 0.02 → L1 -0.16 → L2 0.01 → L3 0.03 → L4 0.01 → L5 0.10 → L6 0.23
 
-### 7. Case studies
+### 7. Damage, not improvement: what the score measures
+
+Within each assay, Spearman between model score and lab result, computed separately inside the worst and the best quarter of variants (209 assays with >= 200 single mutants):
+
+| model | assays | within worst 25% | within best 25% | difference [95% CI] | assays where worst > best | top-5% dip |
+|---|---|---|---|---|---|---|
+| ESM-2 8M | 209 | 0.119 | 0.032 | 0.088 [0.062, 0.114] | 65% | +1.17 |
+| ESM-2 35M | 209 | 0.179 | 0.042 | 0.138 [0.109, 0.169] | 74% | +1.45 |
+| ESM-2 35M (stability) | 66 | 0.287 | 0.049 | 0.237 [0.190, 0.283] | 88% | +1.52 |
+| ESM-2 8M (stability) | 66 | 0.178 | 0.036 | 0.142 [0.093, 0.198] | 76% | +1.08 |
+
+The model ranks damaging variants much better than beneficial ones. On average it does not rate the best variants as worse than good ones (the top-5% dip is positive), but individual assays such as HRas do show that dip. Part of the asymmetry may come from measurement noise among near-neutral variants, which dominate the best quarter.
+
+### 8. What the important heads look at
+
+Attention from the masked site, averaged over sampled sites in the ablation proteins. Mutation heads = the 10 heads whose ablation hurts variant scores most; contact heads = the 10 best contact detectors from section 3.
+
+| model | group | mean layer | to neighbours (1-4 away) | to 3D contacts | to conserved positions | mean distance | entropy |
+|---|---|---|---|---|---|---|---|
+| ESM-2 35M | contact heads | 10.2 | 0.17 | 0.087 | 0.28 | 27.7 | 0.78 |
+| ESM-2 35M | mutation heads | 9.0 | 0.60 | 0.018 | 0.29 | 5.1 | 0.35 |
+| ESM-2 35M | other | 5.1 | 0.23 | 0.033 | 0.26 | 25.2 | 0.70 |
+| ESM-2 8M | contact heads | 4.4 | 0.21 | 0.046 | 0.27 | 23.5 | 0.81 |
+| ESM-2 8M | mutation heads | 3.2 | 0.55 | 0.017 | 0.27 | 6.6 | 0.41 |
+| ESM-2 8M | other | 2.2 | 0.25 | 0.026 | 0.24 | 25.2 | 0.70 |
+
+### 9. Case studies
 
 Open `outputs/explanations/35M/index.html` for the interactive cards.
 
