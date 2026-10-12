@@ -263,13 +263,6 @@ svg text { fill: var(--muted); font-family: var(--f); font-size: 11px; }
 svg .grid { stroke: var(--line); }
 svg .zero { stroke: var(--faint); stroke-dasharray: 3 4; }
 
-/* map */
-.map-scroll { overflow-x: auto; background: var(--surface-2); border-radius: 18px; padding: 10px 10px 6px 0; }
-.map-row { display: flex; align-items: flex-start; }
-.map-labels { position: sticky; left: 0; z-index: 1; background: var(--surface-2); display: flex; flex-direction: column; padding: 0 8px 0 12px; font-family: var(--f-code); font-size: 8.5px; color: var(--muted); }
-.map-title { font-size: .85rem; font-weight: 500; margin: 6px 0 4px 12px; position: sticky; left: 12px; }
-canvas.map { display: block; cursor: crosshair; }
-.ramp { display: inline-block; width: 160px; height: 10px; border-radius: 5px; background: linear-gradient(90deg, var(--ramp-lo), var(--ramp-hi)); vertical-align: -1px; margin: 0 6px; }
 
 /* ------------------------------------------------ pages */
 .view.page { max-width: 1320px; margin: 0 auto; padding: 18px 24px 60px; }

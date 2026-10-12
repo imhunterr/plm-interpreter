@@ -23,8 +23,7 @@ AlphaFold2 structures, MSAs).
 A local web app walks through the whole idea on real proteins: pick a protein, hide one residue,
 see ESM-2's guess for all 20 amino acids, score a mutation against the lab measurement, then ask
 why (residue importance painted on the AlphaFold2 structure) and look inside the model (score after
-every layer, effect of switching off each attention head). It also draws the model's and the lab's
-mutation maps side by side, and includes the findings and figures.
+every layer, effect of switching off each attention head). It also includes the findings and figures.
 
 ```bash
 conda activate plm-interp

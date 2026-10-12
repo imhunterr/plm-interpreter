@@ -16,12 +16,11 @@ const STAGES = [
   { key: "score", label: "Score" },
   { key: "why", label: "Why?" },
   { key: "inside", label: "Inside" },
-  { key: "map", label: "All mutations" },
 ];
 
 const state = {
   proteins: [], protein: null, tokens: null, model: "35M", stage: 0,
-  pos: null, mut: null, predict: null, score: null, explain: null, inside: null, land: null,
+  pos: null, mut: null, predict: null, score: null, explain: null, inside: null,
   showIds: false, req: 0, busy: {},
 };
 
@@ -89,7 +88,6 @@ document.querySelectorAll("[data-model]").forEach((b) => b.addEventListener("cli
   state.model = b.dataset.model;
   document.querySelectorAll("[data-model]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
   const { pos, mut, stage } = state;
-  state.land = null;
   if (pos !== null) { await selectPosition(pos, { stay: true }); if (mut) await chooseMutant(mut, { stay: true }); }
   go(stage);
 }));
@@ -120,7 +118,7 @@ async function loadProtein(key) {
 async function setProtein(d) {
   state.protein = d;
   state.tokens = await api("/api/tokens", { sequence: d.sequence });
-  Object.assign(state, { pos: null, mut: null, predict: null, score: null, explain: null, inside: null, land: null });
+  Object.assign(state, { pos: null, mut: null, predict: null, score: null, explain: null, inside: null });
   state.req++;
   $("#protein-name").textContent = d.name;
   menu.querySelectorAll("button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.key === d.key)));
@@ -143,7 +141,7 @@ $("#custom-form").addEventListener("submit", async (ev) => {
 
 /* ================================================================ stage machine */
 function unlocked(i) {
-  if (i === 0 || i === 6) return true;
+  if (i === 0) return true;
   if (i <= 2) return state.pos !== null;
   return state.pos !== null && state.mut !== null;
 }
@@ -156,14 +154,13 @@ function go(i) {
   renderStage();
   updateStrand();
   styleStructure();
-  const wide = ["inside", "map"].includes(STAGES[i].key);
+  const wide = STAGES[i].key === "inside";
   $("#workspace").classList.toggle("wide", wide);
   $("#view-demo").classList.toggle("no-strand", wide);
   $("#strand").classList.toggle("compact", STAGES[i].key !== "why");
   resizeViewer();
   if (STAGES[i].key === "why" && !state.explain) runExplain();
   if (STAGES[i].key === "inside" && !state.inside) runInside();
-  if (STAGES[i].key === "map" && !state.land) runLandscape();
 }
 
 function renderRail() {
@@ -197,7 +194,7 @@ function head(title, text) {
 function renderStage() {
   const body = $("#stage-body");
   const key = STAGES[state.stage].key;
-  const content = { read: stageRead, hide: stageHide, guess: stageGuess, score: stageScore, why: stageWhy, inside: stageInside, map: stageMap }[key]();
+  const content = { read: stageRead, hide: stageHide, guess: stageGuess, score: stageScore, why: stageWhy, inside: stageInside }[key]();
   body.replaceChildren(...[content].flat());
   body.style.animation = "none"; void body.offsetWidth; body.style.animation = "";
   renderRail();
@@ -319,7 +316,7 @@ function stageScore() {
   const d = state.protein, pos = state.pos, wt = d.sequence[pos], mt = state.mut;
   head(`How bad is ${mname(pos, wt, mt)}?`,
     `The score compares the new amino acid with the original: <code>log P(${mt}) − log P(${wt})</code>. Zero means "just as natural". Below zero means less natural, and very negative usually means damaging.`);
-  if (!state.score) return busy(state.land ? "Scoring…" : "Scoring every possible mutation in this protein for comparison (first time only)…");
+  if (!state.score) return busy("Scoring (the first time, every possible mutation in this protein is scored for comparison)…");
   const s = state.score, ratio = Math.exp(Math.abs(s.llr));
   const ratioText = s.llr < 0
     ? `The model finds <b>${mt}</b> about <b>${ratio < 10 ? ratio.toFixed(1) : Math.round(ratio)}×</b> less likely than <b>${wt}</b> here.`
@@ -498,81 +495,6 @@ function headChart(x, contrib) {
   }
   for (let h = 0; h < x.n_heads; h += 5) g.append(svg("text", { x: m.l + h * cell + cell / 2, y: H - 8, "text-anchor": "middle" }, `H${h}`));
   return g;
-}
-
-/* ================================================================ stage 7: map */
-async function runLandscape() {
-  const d = state.protein;
-  try { state.land = await api("/api/landscape", { sequence: d.sequence, model: state.model }); }
-  catch (e) { state.land = { error: e.message }; }
-  if (state.protein === d && STAGES[state.stage].key === "map") renderStage();
-}
-
-function spearman(a, b) {
-  const rank = (v) => { const idx = v.map((x, i) => [x, i]).sort((p, q) => p[0] - q[0]); const r = new Array(v.length); let i = 0; while (i < idx.length) { let j = i; while (j + 1 < idx.length && idx[j + 1][0] === idx[i][0]) j++; for (let k = i; k <= j; k++) r[idx[k][1]] = (i + j) / 2; i = j + 1; } return r; };
-  const ra = rank(a), rb = rank(b), n = a.length, mu = (n - 1) / 2;
-  let num = 0, da = 0, db = 0;
-  for (let i = 0; i < n; i++) { num += (ra[i] - mu) * (rb[i] - mu); da += (ra[i] - mu) ** 2; db += (rb[i] - mu) ** 2; }
-  return num / Math.sqrt(da * db);
-}
-
-function stageMap() {
-  const d = state.protein;
-  head("Every possible mutation at once",
-    `ESM-2 scores all 19 replacements at every position. Below it, the lab's measurements for the same protein. <b>Darker means more damaging.</b> The more the two maps look alike, the better the model. Click any cell to explore that mutation.`);
-  if (!state.land) return busy(`ESM-2 ${state.model} is scoring all ${(d.sequence.length * 19).toLocaleString()} possible mutations…`);
-  if (state.land.error) return el("p", { class: "error-text" }, state.land.error);
-  const L = d.sequence.length, llr = state.land.llr, cw = L > 300 ? 5 : L > 150 ? 7 : 10, ch = 9;
-  const vals = [];
-  for (let i = 0; i < L; i++) for (let a = 0; a < 20; a++) if (AA[a] !== d.sequence[i]) vals.push(llr[i][a]);
-  const sorted = [...vals].sort((p, q) => p - q);
-  const pctOf = (v) => { let lo = 0, hi = sorted.length; while (lo < hi) { const md = (lo + hi) >> 1; if (sorted[md] < v) lo = md + 1; else hi = md; } return (lo / sorted.length) * 100; };
-  const hasLab = Object.keys(d.lab || {}).length > 0;
-  const makeMap = (title, color) => {
-    const c = el("canvas", { class: "map", "aria-label": title }), dpr = devicePixelRatio || 1;
-    c.width = L * cw * dpr; c.height = (20 * ch + 14) * dpr; c.style.width = `${L * cw}px`; c.style.height = `${20 * ch + 14}px`;
-    const ctx = c.getContext("2d"); ctx.scale(dpr, dpr);
-    ctx.fillStyle = cssVar("--muted"); ctx.font = `9px ${cssVar("--f-code")}`; ctx.textAlign = "center";
-    for (let i = 9; i < L; i += 10) ctx.fillText(String(i + 1), i * cw + cw / 2, 9);
-    for (let i = 0; i < L; i++) for (let r = 0; r < 20; r++) {
-      const aa = WHEEL_ORDER[r];
-      if (aa === d.sequence[i]) { ctx.fillStyle = cssVar("--fg"); ctx.beginPath(); ctx.arc(i * cw + cw / 2, 14 + r * ch + ch / 2, Math.min(cw, ch) * 0.22, 0, 7); ctx.fill(); continue; }
-      ctx.fillStyle = color(i, aa);
-      ctx.fillRect(i * cw, 14 + r * ch, cw - (cw > 5 ? 1 : 0), ch - 1);
-    }
-    if (state.pos !== null) { ctx.strokeStyle = cssVar("--mask"); ctx.lineWidth = 2; ctx.strokeRect(state.pos * cw - 1, 13, cw + 1, 20 * ch + 1); }
-    const cell = (e) => { const r = c.getBoundingClientRect(); return [Math.floor((e.clientX - r.left) / cw), Math.floor((e.clientY - r.top - 14) / ch)]; };
-    c.addEventListener("mousemove", (e) => {
-      const [i, r] = cell(e);
-      if (i < 0 || i >= L || r < 0 || r >= 20) return hideTip();
-      const aa = WHEEL_ORDER[r], wt = d.sequence[i];
-      if (aa === wt) return showTip(`<b>${wt}${i + 1}</b> original residue`, e.clientX, e.clientY);
-      const v = llr[i][AA.indexOf(aa)], lab = d.lab?.[mname(i, wt, aa)];
-      showTip(`<b>${mname(i, wt, aa)}</b><br>model ${fmt(v, 2)} · more unusual than ${pct(100 - pctOf(v))} of mutations${lab ? `<br>lab: did better than ${pct(lab[1])} of tested mutations` : hasLab ? "<br>lab: not tested" : ""}`, e.clientX, e.clientY);
-    });
-    c.addEventListener("mouseleave", hideTip);
-    c.addEventListener("click", async (e) => {
-      const [i, r] = cell(e);
-      if (i < 0 || i >= L || r < 0 || r >= 20 || WHEEL_ORDER[r] === d.sequence[i]) return;
-      hideTip();
-      await selectPosition(i, { stay: true });
-      await chooseMutant(WHEEL_ORDER[r]);
-    });
-    const labels = el("div", { class: "map-labels", style: "padding-top:14px" }, ...[...WHEEL_ORDER].map((a) => el("span", { style: `height:${ch}px;line-height:${ch}px` }, a)));
-    return el("div", {}, el("div", { class: "map-title" }, title), el("div", { class: "map-row" }, labels, c));
-  };
-  const maps = [makeMap(`Model · ESM-2 ${state.model}`, (i, aa) => ramp(1 - pctOf(llr[i][AA.indexOf(aa)]) / 100))];
-  let agree = null;
-  if (hasLab) {
-    maps.push(makeMap(`Lab · ${d.assay} (${d.assay_type.toLowerCase()})`, (i, aa) => { const lab = d.lab[mname(i, d.sequence[i], aa)]; return lab ? ramp(1 - lab[1] / 100) : cssVar("--surface-3"); }));
-    const m = [], l = [];
-    for (const [mut, [score]] of Object.entries(d.lab)) { const i = parseInt(mut.slice(1, -1), 10) - 1, a = AA.indexOf(mut.slice(-1)); if (i >= 0 && i < L && a >= 0) { m.push(llr[i][a]); l.push(score); } }
-    agree = el("div", { class: "callout", html: `<b>Agreement for ${d.name}:</b> Spearman ρ = <b>${spearman(m, l).toFixed(2)}</b> over ${m.length.toLocaleString()} tested mutations (0 = no relation, 1 = perfect). Across all 217 experiments, ESM-2 35M averages 0.32.` });
-  }
-  return [
-    el("div", { class: "legend" }, "harmless", el("span", { class: "ramp" }), "damaging", el("span", {}, "· dot = original residue · grey = not tested · rows grouped by chemistry")),
-    el("div", { class: "map-scroll" }, maps), agree,
-  ];
 }
 
 /* ================================================================ selection */
