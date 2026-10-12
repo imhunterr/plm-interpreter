@@ -3,7 +3,7 @@ import pytest
 from scipy.stats import spearmanr
 
 from plm_interp.baseline.scoring import masked_logprobs, score_mutants, window_for
-from plm_interp.data.proteingym import dms_info, load_dms, parse_mutant, published_benchmark
+from plm_interp.data.proteingym import dms_info, load_dms, parse_mutant, published_benchmark, scoring_region, shift_mutants
 
 
 def test_parse_mutant():
@@ -50,3 +50,20 @@ def test_reproduces_published_proteingym_spearman(bundle):
     rho = spearmanr(score_mutants(df.mutant, lp, seq), df.DMS_score)[0]
     published = published_benchmark().set_index("DMS_id").loc[dms_id, "ESM2 (8M)"]
     assert rho == pytest.approx(published, abs=1e-3)
+
+
+def test_shift_mutants_renumbers():
+    assert shift_mutants(["A12G", "A12G:L30P"], 10) == ["A2G", "A2G:L20P"]
+    assert shift_mutants(["A12G"], 0) == ["A12G"]
+
+
+def test_scoring_region_follows_proteingym():
+    # Short protein: full sequence
+    seq, off = scoring_region("RASH_HUMAN_Bandaru_2017")
+    assert off == 0 and seq == dms_info("RASH_HUMAN_Bandaru_2017").target_seq
+    # Long protein with a partial MSA: scored on the MSA region only, and the mutated residues line up
+    dms_id = "KCNH2_HUMAN_Kozek_2020"
+    seq, off = scoring_region(dms_id)
+    assert off == 534 and len(seq) == 31
+    for w, p, _ in (t for m in shift_mutants(load_dms(dms_id).mutant, off) for t in parse_mutant(m)):
+        assert seq[p] == w

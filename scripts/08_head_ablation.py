@@ -10,6 +10,8 @@ Outputs (outputs/runs/ablation/):
     components.csv   one row per (model, protein, component): delta Spearman on discovery/eval/all
     topk.csv         top-k vs random-k vs contact-k ablations on the evaluation half
 
+Re-running resumes: proteins already in topk.csv are skipped.
+
 Usage:
     python scripts/08_head_ablation.py [--models 35M] [--proteins RASH_HUMAN_Bandaru_2017]
 """
@@ -41,7 +43,7 @@ def main() -> None:
     cfg = load_config()
     ap = argparse.ArgumentParser()
     ap.add_argument("--models", nargs="+", default=cfg["models"])
-    ap.add_argument("--proteins", nargs="+", default=cfg["showcase"])
+    ap.add_argument("--proteins", nargs="+", default=cfg["showcase"] + cfg["ablation"].get("extra_proteins", []))
     ap.add_argument("--threads", type=int, default=cfg["threads"])
     args = ap.parse_args()
     set_threads(args.threads)
@@ -55,11 +57,18 @@ def main() -> None:
         contact_heads = pd.read_csv(head_summary)
         contact_heads = contact_heads[~contact_heads.random_init]
 
+    # Resume: keep earlier results and skip (model, protein) pairs that are already done
     comp_rows, topk_rows = [], []
+    if (out / "components.csv").exists() and (out / "topk.csv").exists():
+        comp_rows = pd.read_csv(out / "components.csv").to_dict("records")
+        topk_rows = pd.read_csv(out / "topk.csv").to_dict("records")
+    done = {(r["model"], r["dms_id"]) for r in topk_rows}
     for size in args.models:
         bundle = load_model(size)
         all_heads = [(l, h) for l in range(bundle.n_layers) for h in range(bundle.n_heads)]
         for dms_id in args.proteins:
+            if (size, dms_id) in done:
+                continue
             t0 = time.time()
             seq = dms_info(dms_id).target_seq
             dms = load_dms(dms_id)

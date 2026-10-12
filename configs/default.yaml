@@ -43,6 +43,29 @@ attribution:
 ablation:
   mode: "mean"           # "mean" or "zero"
   n_random_sets: 20
+  # Extra proteins, chosen by a fixed rule: panel proteins (<= 400 aa) where ESM-2 35M works
+  # (full-assay Spearman >= 0.45) with >= 500 single mutants. Mechanisms are only meaningful
+  # where the model gets the answer right.
+  extra_proteins:
+    - YNZC_BACSU_Tsuboyama_2023_2JVD
+    - VG08_BPP22_Tsuboyama_2023_2GP8
+    - OTU7A_HUMAN_Tsuboyama_2023_2L2D
+    - SR43C_ARATH_Tsuboyama_2023_2N88
+    - RAD_ANTMA_Tsuboyama_2023_2CJJ
+    - NUSG_MYCTU_Tsuboyama_2023_2MI6
+    - RPC1_BP434_Tsuboyama_2023_1R69
+    - PR40A_HUMAN_Tsuboyama_2023_1UZC
+    - DNJA1_HUMAN_Tsuboyama_2023_2LO1
+    - SRBS1_HUMAN_Tsuboyama_2023_2O2W
+    - CBPA2_HUMAN_Tsuboyama_2023_1O6X
+    - PHOT_CHLRE_Chen_2023
+    - DYR_ECOLI_Nguyen_2023
+    - RASK_HUMAN_Weng_2022_binding-DARPin_K55
+    - RNC_ECOLI_Weeks_2023
+    - P84126_THETH_Chan_2017
+    - CASP3_HUMAN_Roychowdhury_2020
+    - A4GRB6_PSEAI_Chen_2020
+    - MET_HUMAN_Estevam_2023
 
 stats:
   n_bootstrap: 1000

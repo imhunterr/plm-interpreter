@@ -11,6 +11,8 @@ proteins), and a permutation-test p-value against its control. Claims:
   C5 deletion   masking the top-attributed residues changes the score more than random / sequence-nearest ones
   C6 ablation   the top-k heads (ranked on held-out positions) matter more than random k heads
   C7 lens       the variant signal emerges in late layers
+  C8 evolution  the score separates damaging variants far better than beneficial ones (all assays)
+  C9 heads      the heads variant scores depend on attend locally and are not the contact heads
 
 Output: outputs/runs/verification/claims.csv and claims.md
 
@@ -156,6 +158,28 @@ def main() -> None:
                 frac = gl.set_index("dms_id").spearman / final
                 frac = frac[final > 0.1]
                 claim(rows, "C7", m, f"layer {layer}: Spearman as a fraction of the final layer's", frac, unit="assays", cfg=cfg)
+
+    # C8 evolution vs function
+    f = RUNS_DIR / "evolution_vs_function" / "per_assay.csv"
+    if f.exists():
+        ev = pd.read_csv(f)
+        for m, g in ev.groupby("model"):
+            claim(rows, "C8", m, "Spearman within the worst 25% of variants minus within the best 25% (asymmetry)",
+                  g.asymmetry, null=0.0, unit="assays", cfg=cfg)
+            claim(rows, "C8", m, "top-5% variants: LLR percentile minus that of the 80-95% band (negative = dip)",
+                  g.top_dip, null=0.0, unit="assays", cfg=cfg)
+            st = g[g.selection_type == "Stability"]
+            claim(rows, "C8", m, "asymmetry, stability assays only", st.asymmetry, null=0.0, unit="assays", cfg=cfg)
+
+    # C9 head roles: mutation heads vs other heads (Mann-Whitney), from 15_head_roles.py
+    f = RUNS_DIR / "head_roles" / "correlations.csv"
+    if f.exists():
+        hr = pd.read_csv(f)
+        for r in hr[hr.property.isin(["local", "contact", "conserved", "seq_distance", "entropy", "contact_precision"])].itertuples():
+            rows.append(dict(claim="C9", model=r.model,
+                             statement=f"top-10 mutation heads vs other heads: {r.property} (masked-site attention)",
+                             estimate=r.mutation_heads_mean, ci_low=np.nan, ci_high=np.nan, control=r.other_heads_mean,
+                             p_value=r.mannwhitney_p_vs_other, n=10, unit="heads"))
 
     df = pd.DataFrame(rows)
     has_p = df.p_value.notna()

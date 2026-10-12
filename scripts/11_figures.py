@@ -15,7 +15,7 @@ import pandas as pd
 from plm_interp.paths import FIGURES_DIR, RUNS_DIR
 from plm_interp.utils.common import get_logger, load_config
 from plm_interp.viz import style
-from plm_interp.viz.style import AQUA, DIVERGING, GRAY, LIGHT_GRAY, MODEL_COLORS, SEQUENTIAL, TEXT_2, VIOLET
+from plm_interp.viz.style import AQUA, BLUE, DIVERGING, GRAY, LIGHT_GRAY, MODEL_COLORS, SEQUENTIAL, TEXT_2, VIOLET
 
 log = get_logger("figures", "figures.log")
 
@@ -168,7 +168,8 @@ def fig_ablation() -> None:
     if not f.exists():
         return
     df = pd.read_csv(f)
-    heads = df[df.kind == "head"].groupby(["model", "layer", "head"]).d_rho_all.mean().reset_index()
+    # Heatmap: average over proteins where the model works (clean Spearman >= 0.2)
+    heads = df[(df.kind == "head") & (df.clean_rho_all >= 0.2)].groupby(["model", "layer", "head"]).d_rho_all.mean().reset_index()
     lim = max(0.02, heads.d_rho_all.abs().max())
     fig, axes = plt.subplots(1, 3, figsize=(12, 3.4), gridspec_kw={"width_ratios": [1, 1.6, 1]})
     for ax, m in zip(axes[:2], ["8M", "35M"]):
@@ -177,7 +178,7 @@ def fig_ablation() -> None:
             ax.set_visible(False)
             continue
         mat = g.pivot(index="layer", columns="head", values="d_rho_all").to_numpy()
-        _layer_head_heatmap(ax, mat, DIVERGING.reversed(), -lim, lim, f"ESM-2 {m}: Spearman change when head ablated",
+        _layer_head_heatmap(ax, mat, DIVERGING.reversed(), -lim, lim, f"ESM-2 {m}: Spearman change when head ablated\n(mean over proteins where the model works)",
                             "change in Spearman", fig)
     ax = axes[2]
     tk_f = RUNS_DIR / "ablation" / "topk.csv"
@@ -235,10 +236,74 @@ def fig_logit_lens() -> None:
     style.save(fig, FIGURES_DIR / "fig6_logit_lens")
 
 
+def fig_evolution() -> None:
+    f = RUNS_DIR / "evolution_vs_function" / "curve.csv"
+    if not f.exists():
+        return
+    curve = pd.read_csv(f)
+    per = pd.read_csv(RUNS_DIR / "evolution_vs_function" / "per_assay.csv")
+    fig, axes = plt.subplots(1, 2, figsize=(9, 3.2))
+    ax = axes[0]
+    for m in ["8M", "35M"]:
+        g = curve[curve.model == m].groupby("dms_pct_mid").llr_pct
+        mean, sem = g.mean(), g.std() / np.sqrt(g.count())
+        ax.fill_between(mean.index, mean - 1.96 * sem, mean + 1.96 * sem, color=MODEL_COLORS[m], alpha=0.15, lw=0)
+        ax.plot(mean.index, mean.values, color=MODEL_COLORS[m], marker="o", markersize=3, label=f"ESM-2 {m}")
+    ax.axvspan(0, 25, color=LIGHT_GRAY, alpha=0.25, lw=0)
+    ax.axvspan(75, 100, color=LIGHT_GRAY, alpha=0.25, lw=0)
+    ax.set(xlabel="Lab result percentile (0 = most damaging)", ylabel="Model score percentile",
+           title="Steep for damaging variants, flat for the best ones", xlim=(0, 100))
+    ax.legend(loc="upper left")
+    ax = axes[1]
+    g = per[per.model == "35M"].groupby("selection_type")[["rho_bottom_quarter", "rho_top_quarter"]].mean()
+    g = g.sort_values("rho_bottom_quarter")
+    y = np.arange(len(g))
+    ax.barh(y + 0.19, g.rho_bottom_quarter, height=0.36, color=BLUE, label="within worst 25%")
+    ax.barh(y - 0.19, g.rho_top_quarter, height=0.36, color=LIGHT_GRAY, label="within best 25%")
+    ax.set_yticks(y, g.index)
+    ax.axvline(0, color=TEXT_2, lw=0.8)
+    ax.set(xlabel="Spearman (model score vs lab result)", title="ESM-2 35M ranks damage, not improvement")
+    ax.grid(axis="y", visible=False)
+    ax.legend(loc="lower right")
+    fig.tight_layout()
+    style.save(fig, FIGURES_DIR / "fig7_evolution_vs_function")
+
+
+def fig_head_roles() -> None:
+    f = RUNS_DIR / "head_roles" / "groups.csv"
+    if not f.exists():
+        return
+    groups = pd.read_csv(f)
+    props = [("local", "neighbours\n(1-4 away)"), ("contact", "3D contacts"), ("conserved", "conserved\npositions"), ("special", "start/end\ntokens")]
+    colors = {"mutation heads": BLUE, "contact heads": AQUA, "other": LIGHT_GRAY}
+    fig, axes = plt.subplots(1, 3, figsize=(12, 3.3), gridspec_kw={"width_ratios": [1.3, 1.3, 0.8]})
+    for ax, m in zip(axes[:2], ["8M", "35M"]):
+        g = groups[groups.model == m].set_index("group")
+        x = np.arange(len(props))
+        for i, grp in enumerate(["mutation heads", "contact heads", "other"]):
+            if grp in g.index:
+                ax.bar(x + (i - 1) * 0.26, [g.loc[grp, p] for p, _ in props], width=0.25, color=colors[grp], label=grp)
+        ax.set_xticks(x, [lab for _, lab in props], fontsize=7.5)
+        ax.set(ylabel="Share of masked-site attention", title=f"ESM-2 {m}: where heads look from the masked site")
+        ax.grid(axis="x", visible=False)
+        ax.legend(fontsize=7)
+    ax = axes[2]
+    x = np.arange(2)
+    for i, grp in enumerate(["mutation heads", "contact heads", "other"]):
+        vals = [groups[(groups.model == m) & (groups.group == grp)].seq_distance.mean() for m in ["8M", "35M"]]
+        ax.bar(x + (i - 1) * 0.26, vals, width=0.25, color=colors[grp], label=grp)
+    ax.set_xticks(x, ["8M", "35M"])
+    ax.set(ylabel="Mean sequence distance attended", title="Mutation heads look locally")
+    ax.grid(axis="x", visible=False)
+    fig.tight_layout()
+    style.save(fig, FIGURES_DIR / "fig8_head_roles")
+
+
 def main() -> None:
     cfg = load_config()
     style.apply()
-    for fn in (fig_baseline, fig_probing, fig_attention, lambda: fig_attribution(cfg), fig_ablation, fig_logit_lens):
+    for fn in (fig_baseline, fig_probing, fig_attention, lambda: fig_attribution(cfg), fig_ablation, fig_logit_lens,
+               fig_evolution, fig_head_roles):
         try:
             fn()
         except Exception as e:  # keep going so one missing input does not block the rest

@@ -146,12 +146,47 @@ def section_lens() -> list[str]:
     return out + [""]
 
 
+def section_evolution() -> list[str]:
+    f = RUNS_DIR / "evolution_vs_function" / "summary.csv"
+    if not f.exists():
+        return []
+    s = pd.read_csv(f)
+    out = ["### 7. Damage, not improvement: what the score measures", "",
+           "Within each assay, Spearman between model score and lab result, computed separately inside the worst "
+           "and the best quarter of variants (209 assays with >= 200 single mutants):", "",
+           "| model | assays | within worst 25% | within best 25% | difference [95% CI] | assays where worst > best | top-5% dip |",
+           "|---|---|---|---|---|---|---|"]
+    for r in s[s.group.isin(["all", "Stability"])].itertuples():
+        label = f"ESM-2 {r.model}" + ("" if r.group == "all" else " (stability)")
+        out.append(f"| {label} | {r.n_assays} | {r.rho_bottom_quarter:.3f} | {r.rho_top_quarter:.3f} | "
+                   f"{r.asymmetry:.3f} [{r.asymmetry_ci_low:.3f}, {r.asymmetry_ci_high:.3f}] | {r.share_assays_asymmetric:.0%} | {r.top_dip:+.2f} |")
+    out += ["", "The model ranks damaging variants much better than beneficial ones. On average it does not rate the "
+            "best variants as worse than good ones (the top-5% dip is positive), but individual assays such as HRas do show that dip. "
+            "Part of the asymmetry may come from measurement noise among near-neutral variants, which dominate the best quarter."]
+    return out + [""]
+
+
+def section_head_roles() -> list[str]:
+    f = RUNS_DIR / "head_roles" / "groups.csv"
+    if not f.exists():
+        return []
+    g = pd.read_csv(f)
+    out = ["### 8. What the important heads look at", "",
+           "Attention from the masked site, averaged over sampled sites in the ablation proteins. Mutation heads = the 10 heads "
+           "whose ablation hurts variant scores most; contact heads = the 10 best contact detectors from section 3.", "",
+           "| model | group | mean layer | to neighbours (1-4 away) | to 3D contacts | to conserved positions | mean distance | entropy |",
+           "|---|---|---|---|---|---|---|---|"]
+    for r in g.itertuples():
+        out.append(f"| ESM-2 {r.model} | {r.group} | {r.mean_layer:.1f} | {r.local:.2f} | {r.contact:.3f} | {r.conserved:.2f} | {r.seq_distance:.1f} | {r.entropy:.2f} |")
+    return out + [""]
+
+
 def section_cases() -> list[str]:
     f = EXPLANATIONS_DIR / load_config()["main_model"] / "cases.csv"
     if not f.exists():
         return []
     c = pd.read_csv(f)
-    out = ["### 7. Case studies", "", "Open `outputs/explanations/35M/index.html` for the interactive cards.", "",
+    out = ["### 9. Case studies", "", "Open `outputs/explanations/35M/index.html` for the interactive cards.", "",
            "| protein | variant | category | model LLR (pct) | assay score (pct) | top-10 residues in 3D contact |", "|---|---|---|---|---|---|"]
     for r in c.itertuples():
         out.append(f"| {r.protein} | {r.mutant} | {r.category.replace('_', ' ')} | {r.llr:+.2f} ({r.llr_percentile:.0f}) | "
@@ -161,7 +196,8 @@ def section_cases() -> list[str]:
 
 def main() -> None:
     lines = []
-    for fn in (section_baseline, section_probing, section_attention, section_attribution, section_ablation, section_lens, section_cases):
+    for fn in (section_baseline, section_probing, section_attention, section_attribution, section_ablation, section_lens,
+               section_evolution, section_head_roles, section_cases):
         lines += fn()
     claims = RUNS_DIR / "verification" / "claims.md"
     if claims.exists():

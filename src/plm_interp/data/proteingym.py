@@ -35,6 +35,28 @@ def load_dms(dms_id: str) -> pd.DataFrame:
     return pd.read_csv(DMS_DIR / dms_info(dms_id).DMS_filename)
 
 
+def scoring_region(dms_id: str, max_len: int = 1022) -> tuple[str, int]:
+    """(sequence to score, 0-based offset of its first residue) following ProteinGym's convention.
+
+    Proteins longer than the model limit whose MSA covers only part of the sequence are scored on
+    the MSA region alone; everything else is scored on the full target sequence (with windows
+    centred on each site when it is still too long).
+    """
+    info = dms_info(dms_id)
+    seq = info.target_seq
+    start, end = int(info.MSA_start) - 1, int(info.MSA_end)
+    if len(seq) > max_len and (start > 0 or end < len(seq)):
+        return seq[start:end], start
+    return seq, 0
+
+
+def shift_mutants(mutants, offset: int) -> list[str]:
+    """Renumber mutant strings for a sequence that starts `offset` residues later."""
+    if offset == 0:
+        return list(mutants)
+    return [":".join(f"{w}{p - offset + 1}{m}" for w, p, m in parse_mutant(x)) for x in mutants]
+
+
 def load_clinical(protein_id: str) -> pd.DataFrame:
     """Clinical variants for one RefSeq protein; adds label (1 = pathogenic, 0 = benign)."""
     df = pd.read_csv(CLINICAL_DIR / f"{protein_id}.csv", index_col=0)

@@ -26,6 +26,8 @@ from plm_interp.data.proteingym import (
     load_clinical,
     load_dms,
     published_benchmark,
+    scoring_region,
+    shift_mutants,
 )
 from plm_interp.models.loader import load_model
 from plm_interp.paths import RUNS_DIR, SCORES_DIR
@@ -43,10 +45,11 @@ def score_dms(bundle, size: str, assays: list[str]) -> None:
         if path.exists():
             continue
         t = time.time()
-        seq = ref.loc[dms_id, "target_seq"]
+        seq, offset = scoring_region(dms_id)
         df = load_dms(dms_id)
-        lp = masked_logprobs(bundle, seq, mutated_positions(df.mutant))
-        df["llr"] = score_mutants(df.mutant, lp, seq)
+        muts = shift_mutants(df.mutant, offset)
+        lp = masked_logprobs(bundle, seq, mutated_positions(muts))
+        df["llr"] = score_mutants(muts, lp, seq)
         df.drop(columns="mutated_sequence").to_parquet(path)
         log.info(f"[{size}] dms {k + 1}/{len(assays)} {dms_id} L={len(seq)} n={len(df)} {time.time() - t:.0f}s")
 
