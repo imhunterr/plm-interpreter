@@ -104,7 +104,7 @@ Attention from the masked site, averaged over sampled sites in the ablation prot
 
 ### 9. Case studies
 
-Open `outputs/explanations/35M/index.html` for the interactive cards.
+Open [`case_studies/35M/index.html`](case_studies/35M/index.html) for the interactive cards.
 
 | protein | variant | category | model LLR (pct) | assay score (pct) | top-10 residues in 3D contact |
 |---|---|---|---|---|---|
@@ -130,4 +130,4 @@ Open `outputs/explanations/35M/index.html` for the interactive cards.
 | P53_HUMAN | R248W | hotspot R248W | -1.90 (6) | -0.051 (22) | 10% |
 | P53_HUMAN | R273H | hotspot R273H | -1.14 (15) | -0.393 (6) | 30% |
 
-Every claim above, with 95% bootstrap CIs, controls and FDR-corrected permutation tests: [`outputs/runs/verification/claims.md`](outputs/runs/verification/claims.md).
+Every claim above, with 95% bootstrap CIs, controls and FDR-corrected permutation tests: [`claims.md`](claims.md).

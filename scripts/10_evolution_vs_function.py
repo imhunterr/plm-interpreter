@@ -14,10 +14,10 @@ model's score (LLR percentile).
        asymmetry = Spearman within the bottom 25% of DMS - Spearman within the top 25%
    asymmetry > 0 means the model separates damaging variants far better than beneficial ones.
 
-Outputs (outputs/runs/evolution_vs_function/): curve.csv, per_assay.csv, summary.csv
+Outputs (results/tables/evolution_vs_function/): curve.csv, per_assay.csv, summary.csv
 
 Usage:
-    python scripts/14_evolution_vs_function.py
+    python scripts/10_evolution_vs_function.py
 """
 
 from __future__ import annotations
@@ -28,7 +28,7 @@ import pandas as pd
 from scipy.stats import spearmanr
 
 from plm_interp.data.proteingym import dms_reference
-from plm_interp.paths import RUNS_DIR, SCORES_DIR
+from plm_interp.paths import TABLES_DIR, SCORES_DIR
 from plm_interp.utils.common import ensure_dir, get_logger, load_config
 from plm_interp.verification.stats import bootstrap_ci, one_sample_permutation_p
 
@@ -40,7 +40,7 @@ MIN_SINGLES = 200
 
 def main() -> None:
     cfg = load_config()
-    out = ensure_dir(RUNS_DIR / "evolution_vs_function")
+    out = ensure_dir(TABLES_DIR / "evolution_vs_function")
     ref = dms_reference().set_index("DMS_id")
     curve_rows, assay_rows = [], []
 

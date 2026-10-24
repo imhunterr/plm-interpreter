@@ -1,4 +1,4 @@
-"""Stage 5: which residues drove each variant score, and are they the variant's 3D neighbours?
+"""Which residues drove each variant score, and are they the variant's 3D neighbours?
 
 For each showcase protein, a fixed sample of single mutants (one per position, stratified over
 the DMS score range, confident structure only) is explained with integrated gradients and,
@@ -6,7 +6,7 @@ for a subset, occlusion. Each attribution is scored by how well it picks out 3D 
 the mutated site, and by a deletion test (masking top-attributed residues vs random ones).
 A random-init model gives the chance level for the method.
 
-Outputs (outputs/runs/attribution/):
+Outputs (results/tables/attribution/):
     variants.csv        one row per (model, variant): scores, completeness, contact AUROCs, deletion results
     attributions.npz    raw per-residue attribution vectors, keyed "<model>|<dms_id>|<mutant>|<method>"
 
@@ -32,7 +32,7 @@ from plm_interp.attribution.methods import (
 )
 from plm_interp.data.proteingym import dms_info, load_dms, parse_mutant
 from plm_interp.models.loader import load_model
-from plm_interp.paths import ANNOTATIONS_DIR, RUNS_DIR
+from plm_interp.paths import ANNOTATIONS_DIR, TABLES_DIR
 from plm_interp.utils.common import ensure_dir, get_logger, load_config, set_threads
 
 log = get_logger("attribution", "attribution.log")
@@ -111,7 +111,7 @@ def main() -> None:
     args = ap.parse_args()
     set_threads(args.threads)
     a_cfg, s_cfg = cfg["attribution"], cfg["structure"]
-    out = ensure_dir(RUNS_DIR / "attribution")
+    out = ensure_dir(TABLES_DIR / "attribution")
     residues = pd.read_parquet(ANNOTATIONS_DIR / "residues.parquet")
 
     rows, vectors = [], {}

@@ -15,17 +15,17 @@ models/**
 data/**
 !data/**/
 !data/**/.gitkeep
-outputs/**
-!outputs/**/
-!outputs/**/.gitkeep
-# Keep the small, paper-relevant results: figures, summary tables, explanation cards
-!outputs/figures/*.png
-!outputs/figures/*.pdf
-!outputs/runs/**/*.csv
-!outputs/runs/**/*.md
-!outputs/explanations/**/*.json
-!outputs/explanations/**/*.html
-!outputs/explanations/**/*.csv
+results/**
+!results/**/
+!results/**/.gitkeep
+# Keep the small, paper-relevant results: reports, figures, summary tables, case-study cards
+!results/*.md
+!results/figures/*.png
+!results/figures/*.pdf
+!results/tables/**/*.csv
+!results/case_studies/**/*.json
+!results/case_studies/**/*.html
+!results/case_studies/**/*.csv
 logs/**
 !logs/.gitkeep
 
@@ -36,7 +36,8 @@ logs/**
 *.h5
 *.zip
 
-# Editor / OS
+# Local only: paper sources, editor / OS files
+paper/
 .vscode/
 .DS_Store
 

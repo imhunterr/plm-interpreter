@@ -1,9 +1,9 @@
-"""Stage 7: at which layer does the variant-effect signal appear?
+"""At which layer does the variant-effect signal appear?
 
 Decodes the masked position from every layer (logit lens) and correlates the per-layer score
 with the DMS measurements. Run on all panel assays (<= 400 residues, one assay per protein).
 
-Output: outputs/runs/logit_lens/layers.csv (model x assay x layer: Spearman, top-1 accuracy)
+Output: results/tables/logit_lens/layers.csv (model x assay x layer: Spearman, top-1 accuracy)
 
 Usage:
     python scripts/09_logit_lens.py
@@ -21,7 +21,7 @@ from plm_interp.baseline.scoring import AA_INDEX, mutated_positions
 from plm_interp.data.proteingym import dms_info, load_dms, parse_mutant
 from plm_interp.explain.logit_lens import layerwise_logprobs
 from plm_interp.models.loader import AMINO_ACIDS, load_model
-from plm_interp.paths import ANNOTATIONS_DIR, RUNS_DIR
+from plm_interp.paths import ANNOTATIONS_DIR, TABLES_DIR
 from plm_interp.utils.common import ensure_dir, get_logger, load_config, set_threads
 
 log = get_logger("logit_lens", "logit_lens.log")
@@ -34,7 +34,7 @@ def main() -> None:
     ap.add_argument("--threads", type=int, default=cfg["threads"])
     args = ap.parse_args()
     set_threads(args.threads)
-    out = ensure_dir(RUNS_DIR / "logit_lens")
+    out = ensure_dir(TABLES_DIR / "logit_lens")
     proteins = pd.read_csv(ANNOTATIONS_DIR / "proteins.csv")
 
     rows = []

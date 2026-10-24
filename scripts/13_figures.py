@@ -1,9 +1,9 @@
-"""Paper figures from the Stage 1-8 outputs. Each figure is skipped if its inputs are missing.
+"""Paper figures from the outputs of scripts 03-12. Each figure is skipped if its inputs are missing.
 
-Output: outputs/figures/*.png and *.pdf
+Output: results/figures/*.png and *.pdf
 
 Usage:
-    python scripts/11_figures.py
+    python scripts/13_figures.py
 """
 
 from __future__ import annotations
@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from plm_interp.paths import FIGURES_DIR, RUNS_DIR
+from plm_interp.paths import FIGURES_DIR, TABLES_DIR
 from plm_interp.utils.common import get_logger, load_config
 from plm_interp.viz import style
 from plm_interp.viz.style import AQUA, BLUE, DIVERGING, GRAY, LIGHT_GRAY, MODEL_COLORS, SEQUENTIAL, TEXT_2, VIOLET
@@ -29,7 +29,7 @@ TASK_TITLES = {
 
 
 def fig_baseline() -> None:
-    f = RUNS_DIR / "baseline" / "dms_per_assay.csv"
+    f = TABLES_DIR / "baseline" / "dms_per_assay.csv"
     if not f.exists():
         return
     df = pd.read_csv(f)
@@ -58,7 +58,7 @@ def fig_baseline() -> None:
 
 
 def fig_probing() -> None:
-    f = RUNS_DIR / "probing" / "probe_results.csv"
+    f = TABLES_DIR / "probing" / "probe_results.csv"
     if not f.exists():
         return
     df = pd.read_csv(f)
@@ -99,7 +99,7 @@ def _layer_head_heatmap(ax, mat, cmap, vmin, vmax, title, cbar_label, fig):
 
 
 def fig_attention() -> None:
-    f = RUNS_DIR / "attention" / "head_summary.csv"
+    f = TABLES_DIR / "attention" / "head_summary.csv"
     if not f.exists():
         return
     df = pd.read_csv(f)
@@ -124,7 +124,7 @@ def fig_attention() -> None:
 
 
 def fig_attribution(cfg) -> None:
-    f = RUNS_DIR / "attribution" / "variants.csv"
+    f = TABLES_DIR / "attribution" / "variants.csv"
     if not f.exists():
         return
     df = pd.read_csv(f)
@@ -164,7 +164,7 @@ def fig_attribution(cfg) -> None:
 
 
 def fig_ablation() -> None:
-    f = RUNS_DIR / "ablation" / "components.csv"
+    f = TABLES_DIR / "ablation" / "components.csv"
     if not f.exists():
         return
     df = pd.read_csv(f)
@@ -181,7 +181,7 @@ def fig_ablation() -> None:
         _layer_head_heatmap(ax, mat, DIVERGING.reversed(), -lim, lim, f"ESM-2 {m}: Spearman change when head ablated\n(mean over proteins where the model works)",
                             "change in Spearman", fig)
     ax = axes[2]
-    tk_f = RUNS_DIR / "ablation" / "topk.csv"
+    tk_f = TABLES_DIR / "ablation" / "topk.csv"
     if tk_f.exists():
         tk = pd.read_csv(tk_f)
         for m in ["8M", "35M"]:
@@ -215,7 +215,7 @@ def fig_ablation() -> None:
 
 
 def fig_logit_lens() -> None:
-    f = RUNS_DIR / "logit_lens" / "layers.csv"
+    f = TABLES_DIR / "logit_lens" / "layers.csv"
     if not f.exists():
         return
     df = pd.read_csv(f)
@@ -237,11 +237,11 @@ def fig_logit_lens() -> None:
 
 
 def fig_evolution() -> None:
-    f = RUNS_DIR / "evolution_vs_function" / "curve.csv"
+    f = TABLES_DIR / "evolution_vs_function" / "curve.csv"
     if not f.exists():
         return
     curve = pd.read_csv(f)
-    per = pd.read_csv(RUNS_DIR / "evolution_vs_function" / "per_assay.csv")
+    per = pd.read_csv(TABLES_DIR / "evolution_vs_function" / "per_assay.csv")
     fig, axes = plt.subplots(1, 2, figsize=(9, 3.2))
     ax = axes[0]
     for m in ["8M", "35M"]:
@@ -270,7 +270,7 @@ def fig_evolution() -> None:
 
 
 def fig_head_roles() -> None:
-    f = RUNS_DIR / "head_roles" / "groups.csv"
+    f = TABLES_DIR / "head_roles" / "groups.csv"
     if not f.exists():
         return
     groups = pd.read_csv(f)

@@ -16,7 +16,7 @@ from plm_interp.data.proteingym import dms_info, load_dms
 from plm_interp.explain.ablation import head_means
 from plm_interp.explain.logit_lens import layerwise_logprobs
 from plm_interp.models.loader import AMINO_ACIDS, MAX_RESIDUES, ModelBundle, load_model
-from plm_interp.paths import ANNOTATIONS_DIR, INTERIM_DIR, RUNS_DIR, STRUCTURES_DIR
+from plm_interp.paths import ANNOTATIONS_DIR, INTERIM_DIR, TABLES_DIR, STRUCTURES_DIR
 
 # One inference at a time: torch already uses every core, parallel requests would only thrash
 _LOCK = threading.Lock()
@@ -267,14 +267,14 @@ def _head_effects(b: ModelBundle, seq: str, position: int, wt: str, mt: str, chu
 
 @lru_cache(maxsize=4)
 def _known_heads(size: str) -> dict:
-    """Top contact-detector heads (Stage 4) and top variant-score heads (Stage 6/8), if computed."""
+    """Top contact-detector heads (06_attention_contacts.py) and top variant-score heads (08/11), if computed."""
     out = {"contact": [], "mutation": []}
-    f = RUNS_DIR / "attention" / "head_summary.csv"
+    f = TABLES_DIR / "attention" / "head_summary.csv"
     if f.exists():
         d = pd.read_csv(f)
         d = d[(d.model == size) & ~d.random_init].nlargest(10, "precision_at_L")
         out["contact"] = [[int(r.layer), int(r["head"])] for _, r in d.iterrows()]
-    f = RUNS_DIR / "head_roles" / "head_properties.csv"
+    f = TABLES_DIR / "head_roles" / "head_properties.csv"
     if f.exists():
         d = pd.read_csv(f)
         d = d[d.model == size].nlargest(10, "importance")

@@ -12,11 +12,11 @@ Each card combines:
   layers:   logit-lens score after each layer
   context:  what the model thinks fits at this position vs what the assay measured
 
-Outputs (outputs/explanations/<model>/<dms_id>/): <mutant>.json, <mutant>.html (3D view + card),
-and outputs/explanations/<model>/index.html.
+Outputs (results/case_studies/<model>/<dms_id>/): <mutant>.json, <mutant>.html (3D view + card),
+and results/case_studies/<model>/index.html.
 
 Usage:
-    python scripts/12_case_studies.py [--model 35M]
+    python scripts/14_case_studies.py [--model 35M]
 """
 
 from __future__ import annotations
@@ -37,7 +37,7 @@ from plm_interp.explain.ablation import head_means
 from plm_interp.explain.logit_lens import layerwise_logprobs
 from plm_interp.models.hooks import ablate_heads
 from plm_interp.models.loader import AMINO_ACIDS, load_model
-from plm_interp.paths import ANNOTATIONS_DIR, EXPLANATIONS_DIR, STRUCTURES_DIR
+from plm_interp.paths import ANNOTATIONS_DIR, CASE_STUDIES_DIR, STRUCTURES_DIR
 from plm_interp.utils.common import ensure_dir, get_logger, load_config, set_threads
 
 log = get_logger("case_studies", "case_studies.log")
@@ -145,7 +145,7 @@ def main() -> None:
     s_cfg = cfg["structure"]
     bundle = load_model(args.model)
     residues = pd.read_parquet(ANNOTATIONS_DIR / "residues.parquet")
-    root = ensure_dir(EXPLANATIONS_DIR / args.model)
+    root = ensure_dir(CASE_STUDIES_DIR / args.model)
     index_rows = []
 
     for dms_id in cfg["showcase"]:

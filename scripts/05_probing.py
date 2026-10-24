@@ -1,9 +1,9 @@
-"""Stage 3: linear probes per layer for secondary structure, burial, RSA, conservation, contact count.
+"""Linear probes per layer for secondary structure, burial, RSA, conservation, contact count.
 
 Trained on the panel's train proteins, evaluated on held-out proteins (protein-level split).
 Controls: the same architecture with random weights, and a probe on amino-acid identity alone.
 
-Output: outputs/runs/probing/probe_results.csv
+Output: results/tables/probing/probe_results.csv
 
 Usage:
     python scripts/05_probing.py
@@ -16,7 +16,7 @@ import pandas as pd
 
 from plm_interp.explain.probing import TASKS, aa_onehot, residual_features, run_probe, task_mask
 from plm_interp.models.loader import load_model
-from plm_interp.paths import ANNOTATIONS_DIR, RUNS_DIR
+from plm_interp.paths import ANNOTATIONS_DIR, TABLES_DIR
 from plm_interp.utils.common import ensure_dir, get_logger, load_config, seed_everything, set_threads
 
 log = get_logger("probing", "probing.log")
@@ -26,7 +26,7 @@ def main() -> None:
     cfg = load_config()
     set_threads(cfg["threads"])
     seed_everything(cfg["seed"])
-    out = ensure_dir(RUNS_DIR / "probing")
+    out = ensure_dir(TABLES_DIR / "probing")
 
     residues = pd.read_parquet(ANNOTATIONS_DIR / "residues.parquet")
     proteins = residues.groupby("uniprot", sort=False).aa.apply("".join)

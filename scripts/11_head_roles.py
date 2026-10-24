@@ -10,14 +10,14 @@ attention goes, averaged over sampled sites in the ablation proteins:
     seq_distance attention-weighted mean |i - j| over residues
     entropy      spread of attention over residues (normalised, 0 = one residue, 1 = uniform)
 
-Heads are then grouped by their ablation importance (Stage 6, mean drop in Spearman across proteins
-where the model works) and compared with the contact-detector heads from Stage 4.
+Heads are then grouped by their ablation importance (08_head_ablation.py, mean drop in Spearman across proteins
+where the model works) and compared with the contact-detector heads from 06_attention_contacts.py.
 
-Outputs (outputs/runs/head_roles/): head_properties.csv (one row per model x head), groups.csv,
+Outputs (results/tables/head_roles/): head_properties.csv (one row per model x head), groups.csv,
 correlations.csv
 
 Usage:
-    python scripts/15_head_roles.py
+    python scripts/11_head_roles.py
 """
 
 from __future__ import annotations
@@ -29,7 +29,7 @@ from scipy.stats import mannwhitneyu, spearmanr
 
 from plm_interp.data.proteingym import dms_info
 from plm_interp.models.loader import load_model
-from plm_interp.paths import ANNOTATIONS_DIR, RUNS_DIR
+from plm_interp.paths import ANNOTATIONS_DIR, TABLES_DIR
 from plm_interp.utils.common import ensure_dir, get_logger, load_config, set_threads
 
 log = get_logger("head_roles", "head_roles.log")
@@ -82,10 +82,10 @@ def site_properties(rows: np.ndarray, pos: int, dist: np.ndarray, conf: np.ndarr
 def main() -> None:
     cfg = load_config()
     set_threads(cfg["threads"])
-    out = ensure_dir(RUNS_DIR / "head_roles")
+    out = ensure_dir(TABLES_DIR / "head_roles")
     residues = pd.read_parquet(ANNOTATIONS_DIR / "residues.parquet")
-    comp = pd.read_csv(RUNS_DIR / "ablation" / "components.csv")
-    contact_summary = pd.read_csv(RUNS_DIR / "attention" / "head_summary.csv")
+    comp = pd.read_csv(TABLES_DIR / "ablation" / "components.csv")
+    contact_summary = pd.read_csv(TABLES_DIR / "attention" / "head_summary.csv")
     proteins = sorted(comp.dms_id.unique())
     rng = np.random.default_rng(cfg["seed"])
 

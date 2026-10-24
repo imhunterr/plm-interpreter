@@ -1,17 +1,15 @@
-"""Collect headline numbers from every stage into outputs/runs/report.md and the README results section.
+"""Collect headline numbers from every stage into results/report.md.
 
 Usage:
-    python scripts/13_report.py
+    python scripts/15_report.py
 """
 
 from __future__ import annotations
 
-import re
-
 import numpy as np
 import pandas as pd
 
-from plm_interp.paths import EXPLANATIONS_DIR, ROOT, RUNS_DIR
+from plm_interp.paths import CASE_STUDIES_DIR, RESULTS_DIR, TABLES_DIR
 from plm_interp.utils.common import load_config
 
 
@@ -20,7 +18,7 @@ def _fmt(x, nd=3):
 
 
 def section_baseline() -> list[str]:
-    f = RUNS_DIR / "baseline" / "dms_summary.csv"
+    f = TABLES_DIR / "baseline" / "dms_summary.csv"
     if not f.exists():
         return []
     s = pd.read_csv(f).set_index("model")
@@ -29,7 +27,7 @@ def section_baseline() -> list[str]:
            "|---|---|---|---|---|---|"]
     for m, r in s.iterrows():
         out.append(f"| ESM-2 {m} | {int(r.n_assays)} | {_fmt(r.mean_spearman)} | {_fmt(r.mean_published_spearman)} | {_fmt(r.max_abs_diff, 4)} | {_fmt(r.mean_auc)} |")
-    per = RUNS_DIR / "baseline" / "dms_per_assay.csv"
+    per = TABLES_DIR / "baseline" / "dms_per_assay.csv"
     if per.exists():
         d = pd.read_csv(per)
         off = d[d.abs_diff_vs_published > 0.01]
@@ -40,7 +38,7 @@ def section_baseline() -> list[str]:
         msg += (" Proteins longer than ESM-2's 1,022-residue limit are scored as ProteinGym does: on the MSA region"
                 " when it covers only part of the protein, otherwise in windows centred on each site.")
         out += ["", msg]
-    c = RUNS_DIR / "baseline" / "clinical_summary.csv"
+    c = TABLES_DIR / "baseline" / "clinical_summary.csv"
     if c.exists():
         cl = pd.read_csv(c)
         out += ["", "Clinical variants (pathogenic vs benign, score = -LLR):", "",
@@ -51,7 +49,7 @@ def section_baseline() -> list[str]:
 
 
 def section_probing() -> list[str]:
-    f = RUNS_DIR / "probing" / "probe_results.csv"
+    f = TABLES_DIR / "probing" / "probe_results.csv"
     if not f.exists():
         return []
     df = pd.read_csv(f)
@@ -73,7 +71,7 @@ def section_probing() -> list[str]:
 
 
 def section_attention() -> list[str]:
-    f = RUNS_DIR / "attention" / "head_summary.csv"
+    f = TABLES_DIR / "attention" / "head_summary.csv"
     if not f.exists():
         return []
     df = pd.read_csv(f)
@@ -87,7 +85,7 @@ def section_attention() -> list[str]:
 
 
 def section_attribution() -> list[str]:
-    f = RUNS_DIR / "attribution" / "variants.csv"
+    f = TABLES_DIR / "attribution" / "variants.csv"
     if not f.exists():
         return []
     df = pd.read_csv(f)
@@ -117,7 +115,7 @@ def section_attribution() -> list[str]:
 
 
 def section_ablation() -> list[str]:
-    f = RUNS_DIR / "ablation" / "topk.csv"
+    f = TABLES_DIR / "ablation" / "topk.csv"
     if not f.exists():
         return []
     tk = pd.read_csv(f)
@@ -128,7 +126,7 @@ def section_ablation() -> list[str]:
         contact = (g.clean_rho_eval - g.contact_rho_eval).mean() if "contact_rho_eval" in g else np.nan
         out.append(f"| ESM-2 {m} | {k} | {(g.clean_rho_eval - g.top_rho_eval).mean():.3f} | "
                    f"{(g.clean_rho_eval - g.random_rho_eval_mean).mean():.3f} | {_fmt(contact)} |")
-    comp = RUNS_DIR / "ablation" / "components.csv"
+    comp = TABLES_DIR / "ablation" / "components.csv"
     if comp.exists():
         c = pd.read_csv(comp)
         lay = c[c.kind.isin(["attn_layer", "mlp"])].groupby(["model", "kind"]).d_rho_all.min()
@@ -137,7 +135,7 @@ def section_ablation() -> list[str]:
 
 
 def section_lens() -> list[str]:
-    f = RUNS_DIR / "logit_lens" / "layers.csv"
+    f = TABLES_DIR / "logit_lens" / "layers.csv"
     if not f.exists():
         return []
     df = pd.read_csv(f)
@@ -149,7 +147,7 @@ def section_lens() -> list[str]:
 
 
 def section_evolution() -> list[str]:
-    f = RUNS_DIR / "evolution_vs_function" / "summary.csv"
+    f = TABLES_DIR / "evolution_vs_function" / "summary.csv"
     if not f.exists():
         return []
     s = pd.read_csv(f)
@@ -169,7 +167,7 @@ def section_evolution() -> list[str]:
 
 
 def section_head_roles() -> list[str]:
-    f = RUNS_DIR / "head_roles" / "groups.csv"
+    f = TABLES_DIR / "head_roles" / "groups.csv"
     if not f.exists():
         return []
     g = pd.read_csv(f)
@@ -184,11 +182,11 @@ def section_head_roles() -> list[str]:
 
 
 def section_cases() -> list[str]:
-    f = EXPLANATIONS_DIR / load_config()["main_model"] / "cases.csv"
+    f = CASE_STUDIES_DIR / load_config()["main_model"] / "cases.csv"
     if not f.exists():
         return []
     c = pd.read_csv(f)
-    out = ["### 9. Case studies", "", "Open `outputs/explanations/35M/index.html` for the interactive cards.", "",
+    out = ["### 9. Case studies", "", "Open [`case_studies/35M/index.html`](case_studies/35M/index.html) for the interactive cards.", "",
            "| protein | variant | category | model LLR (pct) | assay score (pct) | top-10 residues in 3D contact |", "|---|---|---|---|---|---|"]
     for r in c.itertuples():
         out.append(f"| {r.protein} | {r.mutant} | {r.category.replace('_', ' ')} | {r.llr:+.2f} ({r.llr_percentile:.0f}) | "
@@ -201,17 +199,12 @@ def main() -> None:
     for fn in (section_baseline, section_probing, section_attention, section_attribution, section_ablation, section_lens,
                section_evolution, section_head_roles, section_cases):
         lines += fn()
-    claims = RUNS_DIR / "verification" / "claims.md"
+    claims = RESULTS_DIR / "claims.md"
     if claims.exists():
         lines += ["Every claim above, with 95% bootstrap CIs, controls and FDR-corrected permutation tests: "
-                  "[`outputs/runs/verification/claims.md`](outputs/runs/verification/claims.md).", ""]
+                  "[`claims.md`](claims.md).", ""]
     body = "\n".join(lines)
-    (RUNS_DIR / "report.md").write_text("# PLM Interpreter results\n\n" + body)
-
-    readme = ROOT / "README.md"
-    text = readme.read_text()
-    text = re.sub(r"## Results\n.*?\n## Pipeline", lambda _m: "## Results\n\n<!-- RESULTS -->\n" + body + "\n## Pipeline", text, flags=re.S)
-    readme.write_text(text)
+    (RESULTS_DIR / "report.md").write_text("# PLM Interpreter results\n\n" + body)
 
 
 if __name__ == "__main__":

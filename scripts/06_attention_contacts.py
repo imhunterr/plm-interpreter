@@ -1,10 +1,10 @@
-"""Stage 4: which attention heads look at residues that touch in 3D?
+"""Which attention heads look at residues that touch in 3D?
 
 For every protein in the panel, compares each head's attention map with the AF2 contact map
 (C-beta < 8 A, |i-j| >= 6, both residues pLDDT >= 70). Repeated on a random-init model.
 
-Output: outputs/runs/attention/head_contacts.csv (one row per model x protein x layer x head)
-        outputs/runs/attention/head_summary.csv (averaged over proteins)
+Output: results/tables/attention/head_contacts.csv (one row per model x protein x layer x head)
+        results/tables/attention/head_summary.csv (averaged over proteins)
 
 Usage:
     python scripts/06_attention_contacts.py
@@ -18,7 +18,7 @@ import pandas as pd
 from plm_interp.attribution.attention import head_contact_scores
 from plm_interp.models.hooks import attention_maps
 from plm_interp.models.loader import load_model
-from plm_interp.paths import ANNOTATIONS_DIR, RUNS_DIR
+from plm_interp.paths import ANNOTATIONS_DIR, TABLES_DIR
 from plm_interp.utils.common import ensure_dir, get_logger, load_config, set_threads
 
 log = get_logger("attention", "attention.log")
@@ -27,7 +27,7 @@ log = get_logger("attention", "attention.log")
 def main() -> None:
     cfg = load_config()
     set_threads(cfg["threads"])
-    out = ensure_dir(RUNS_DIR / "attention")
+    out = ensure_dir(TABLES_DIR / "attention")
     s_cfg = cfg["structure"]
     residues = pd.read_parquet(ANNOTATIONS_DIR / "residues.parquet")
 

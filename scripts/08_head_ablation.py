@@ -1,12 +1,12 @@
-"""Stage 6: which attention heads and MLPs does variant-effect prediction causally depend on?
+"""Which attention heads and MLPs does variant-effect prediction causally depend on?
 
 For each showcase protein, a fixed sample of mutated positions is split into a discovery half
 and an evaluation half. Every head (and every whole attention layer / MLP) is mean-ablated in
 turn and the masked-marginal scores are recomputed. Heads are ranked on the discovery half; the
 top-k heads are then ablated together and evaluated on the held-out half against random sets of
-k heads and against the top "contact heads" from Stage 4.
+k heads and against the top "contact heads" from 06_attention_contacts.py.
 
-Outputs (outputs/runs/ablation/):
+Outputs (results/tables/ablation/):
     components.csv   one row per (model, protein, component): delta Spearman on discovery/eval/all
     topk.csv         top-k vs random-k vs contact-k ablations on the evaluation half
 
@@ -30,7 +30,7 @@ from plm_interp.data.proteingym import dms_info, load_dms, parse_mutant
 from plm_interp.explain.ablation import ablate_mlps, head_means, mlp_means
 from plm_interp.models.hooks import ablate_heads
 from plm_interp.models.loader import load_model
-from plm_interp.paths import RUNS_DIR
+from plm_interp.paths import TABLES_DIR
 from plm_interp.utils.common import ensure_dir, get_logger, load_config, set_threads
 
 log = get_logger("ablation", "ablation.log")
@@ -47,12 +47,12 @@ def main() -> None:
     ap.add_argument("--threads", type=int, default=cfg["threads"])
     args = ap.parse_args()
     set_threads(args.threads)
-    out = ensure_dir(RUNS_DIR / "ablation")
+    out = ensure_dir(TABLES_DIR / "ablation")
     n_random = cfg["ablation"]["n_random_sets"]
     use_mean = cfg["ablation"]["mode"] == "mean"
 
     contact_heads = None
-    head_summary = RUNS_DIR / "attention" / "head_summary.csv"
+    head_summary = TABLES_DIR / "attention" / "head_summary.csv"
     if head_summary.exists():
         contact_heads = pd.read_csv(head_summary)
         contact_heads = contact_heads[~contact_heads.random_init]

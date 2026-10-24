@@ -1,7 +1,7 @@
-"""Stage 1 baseline: zero-shot masked-marginal scores for every ProteinGym assay and clinical set.
+"""Zero-shot masked-marginal scores for every ProteinGym assay and clinical set.
 
 Writes per-assay scores to data/processed/scores/<model>/{dms,clinical}/<id>.parquet and
-summaries to outputs/runs/baseline/. Re-running skips anything already scored.
+summaries to results/tables/baseline/. Re-running skips anything already scored.
 
 Usage:
     python scripts/03_baseline.py                 # both models, DMS + clinical
@@ -30,7 +30,7 @@ from plm_interp.data.proteingym import (
     shift_mutants,
 )
 from plm_interp.models.loader import load_model
-from plm_interp.paths import RUNS_DIR, SCORES_DIR
+from plm_interp.paths import TABLES_DIR, SCORES_DIR
 from plm_interp.utils.common import ensure_dir, get_logger, load_config, set_threads
 
 log = get_logger("baseline", "baseline.log")
@@ -72,7 +72,7 @@ def score_clinical(bundle, size: str) -> None:
 
 
 def summarise(sizes: list[str]) -> None:
-    out_dir = ensure_dir(RUNS_DIR / "baseline")
+    out_dir = ensure_dir(TABLES_DIR / "baseline")
     ref = dms_reference().set_index("DMS_id")
     pub_sp = published_benchmark("Spearman").set_index("DMS_id")
     pub_auc = published_benchmark("AUC").set_index("DMS_id")

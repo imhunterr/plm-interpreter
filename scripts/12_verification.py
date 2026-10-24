@@ -1,4 +1,4 @@
-"""Stage 8: trust checks. Turns the raw outputs of Stages 1-7 into tested, paper-ready claims.
+"""Trust checks: turns the raw outputs of scripts 03-11 into tested, paper-ready claims.
 
 Every claim gets an effect size, a 95% bootstrap CI over independent units (variants or
 proteins), and a permutation-test p-value against its control. Claims:
@@ -14,10 +14,10 @@ proteins), and a permutation-test p-value against its control. Claims:
   C8 evolution  the score separates damaging variants far better than beneficial ones (all assays)
   C9 heads      the heads variant scores depend on attend locally and are not the contact heads
 
-Output: outputs/runs/verification/claims.csv and claims.md
+Output: results/tables/verification/claims.csv and results/claims.md
 
 Usage:
-    python scripts/10_verification.py
+    python scripts/12_verification.py
 """
 
 from __future__ import annotations
@@ -28,7 +28,7 @@ from scipy.stats import binomtest
 
 from plm_interp.explain.probing import TASKS, task_mask
 
-from plm_interp.paths import ANNOTATIONS_DIR, RUNS_DIR
+from plm_interp.paths import ANNOTATIONS_DIR, RESULTS_DIR, TABLES_DIR
 from plm_interp.utils.common import ensure_dir, get_logger, load_config
 from plm_interp.verification.stats import (
     benjamini_hochberg,
@@ -58,11 +58,11 @@ def claim(rows, cid, model, text, values, null=None, paired=None, unit="", cfg=N
 
 def main() -> None:
     cfg = load_config()
-    out = ensure_dir(RUNS_DIR / "verification")
+    out = ensure_dir(TABLES_DIR / "verification")
     rows: list[dict] = []
 
     # C1 baseline reproduction
-    f = RUNS_DIR / "baseline" / "dms_per_assay.csv"
+    f = TABLES_DIR / "baseline" / "dms_per_assay.csv"
     if f.exists():
         dms = pd.read_csv(f)
         for m, g in dms.groupby("model"):
@@ -71,7 +71,7 @@ def main() -> None:
             claim(rows, "C1", m, "mean Spearman with DMS (zero-shot)", g.spearman, null=0.0, unit="assays", cfg=cfg)
 
     # C2 probing: best trained layer vs aa-identity and vs best random-init layer (point estimates per task)
-    f = RUNS_DIR / "probing" / "probe_results.csv"
+    f = TABLES_DIR / "probing" / "probe_results.csv"
     if f.exists():
         pr = pd.read_csv(f)
         aa = pr[pr.model == "aa_identity"].set_index("task").value
@@ -91,10 +91,10 @@ def main() -> None:
                 ))
 
     # C3 attention heads vs contacts (per-protein precision of the best head vs random-init best head)
-    f = RUNS_DIR / "attention" / "head_contacts.csv"
+    f = TABLES_DIR / "attention" / "head_contacts.csv"
     if f.exists():
         hc = pd.read_csv(f)
-        summ = pd.read_csv(RUNS_DIR / "attention" / "head_summary.csv")
+        summ = pd.read_csv(TABLES_DIR / "attention" / "head_summary.csv")
         for m in cfg["models"]:
             s = summ[(summ.model == m) & ~summ.random_init]
             best = s.loc[s.precision_at_L.idxmax()]
@@ -109,7 +109,7 @@ def main() -> None:
                   sel.precision_at_L, paired=sel.base_rate, unit="proteins", cfg=cfg)
 
     # C4 / C5 attribution and deletion
-    f = RUNS_DIR / "attribution" / "variants.csv"
+    f = TABLES_DIR / "attribution" / "variants.csv"
     if f.exists():
         va = pd.read_csv(f)
         for m in cfg["models"]:
@@ -133,7 +133,7 @@ def main() -> None:
                 claim(rows, "C5", m, f"|dLLR| masking top-{k} IG residues vs {k} sequence-nearest", t[f"del_top_{k}"], paired=t[f"del_near_{k}"], unit="variants", cfg=cfg)
 
     # C6 ablation
-    f = RUNS_DIR / "ablation" / "topk.csv"
+    f = TABLES_DIR / "ablation" / "topk.csv"
     if f.exists():
         tk = pd.read_csv(f)
         for m, g in tk.groupby("model"):
@@ -149,7 +149,7 @@ def main() -> None:
                     claim(rows, "C6", m, f"held-out Spearman drop: ablate top-{k} contact heads", gk.clean_rho_eval - gk.contact_rho_eval, paired=drop_rand, unit="proteins", cfg=cfg)
 
     # C7 logit lens: fraction of final Spearman reached at each relative depth
-    f = RUNS_DIR / "logit_lens" / "layers.csv"
+    f = TABLES_DIR / "logit_lens" / "layers.csv"
     if f.exists():
         ll = pd.read_csv(f)
         for m, g in ll.groupby("model"):
@@ -160,7 +160,7 @@ def main() -> None:
                 claim(rows, "C7", m, f"layer {layer}: Spearman as a fraction of the final layer's", frac, unit="assays", cfg=cfg)
 
     # C8 evolution vs function
-    f = RUNS_DIR / "evolution_vs_function" / "per_assay.csv"
+    f = TABLES_DIR / "evolution_vs_function" / "per_assay.csv"
     if f.exists():
         ev = pd.read_csv(f)
         for m, g in ev.groupby("model"):
@@ -171,8 +171,8 @@ def main() -> None:
             st = g[g.selection_type == "Stability"]
             claim(rows, "C8", m, "asymmetry, stability assays only", st.asymmetry, null=0.0, unit="assays", cfg=cfg)
 
-    # C9 head roles: mutation heads vs other heads (Mann-Whitney), from 15_head_roles.py
-    f = RUNS_DIR / "head_roles" / "correlations.csv"
+    # C9 head roles: mutation heads vs other heads (Mann-Whitney), from 11_head_roles.py
+    f = TABLES_DIR / "head_roles" / "correlations.csv"
     if f.exists():
         hr = pd.read_csv(f)
         for r in hr[hr.property.isin(["local", "contact", "conserved", "seq_distance", "entropy", "contact_precision"])].itertuples():
@@ -192,7 +192,7 @@ def main() -> None:
         q = f"{r.q_value:.2g}" if not pd.isna(getattr(r, "q_value", np.nan)) else ""
         ctrl = f"{r.control:.3f}" if not pd.isna(r.control) else ""
         lines.append(f"| {r.claim} | {r.model} | {r.statement} | {r.estimate:.3f} {ci} | {ctrl} | {q} | {r.n} {r.unit} |")
-    (out / "claims.md").write_text("\n".join(lines) + "\n")
+    (RESULTS_DIR / "claims.md").write_text("\n".join(lines) + "\n")
     log.info(f"{len(df)} claims written to {out}")
 
 
